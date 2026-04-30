@@ -337,7 +337,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
 .ab-item.active{background:var(--blue-glow);}
 .ab-item.active .ab-bar{background:var(--blue);}
 .ab-bar{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:0 2px 2px 0;}
-.ab-art{width:48px;height:48px;border-radius:var(--r);background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;overflow:hidden;}
+.ab-art{width:48px;height:48px;border-radius:var(--r);background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;overflow:hidden;transition:border-color .15s;}
+.ab-art:hover{border-color:var(--blue);}
 .ab-art img{width:100%;height:100%;object-fit:cover;}
 .ab-info{flex:1;min-width:0;}
 .ab-title{font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
@@ -1958,6 +1959,12 @@ async function importAudiobooks(){
       addedAt:new Date().toISOString()
     };
 
+    // Try to fetch cover from Open Library if no embedded art
+    if(!item.artUrl){
+      fetchAbCover(item.title,item.artist).then(art=>{
+        if(art){item.artUrl=art;abDbPut(item);renderAudiobookShelf();}
+      }).catch(()=>{});
+    }
     await abDbPut(item);
     audiobookShelf.push(item);
     imported++;
@@ -2000,7 +2007,10 @@ function renderAudiobookShelf(){
         <div class="ab-artist">${esc(item.artist)}</div>
         <div class="ab-meta">${dur} · ${item.sizeMB}MB · ${item.filename.split('.').pop().toUpperCase()}</div>
       </div>
-      <button class="ab-del" onclick="deleteAudiobook(event,${i})" title="Remove">✕</button>
+      <div class="ab-actions">
+        <button class="ab-del" onclick="setAbCoverFromUrl(event,${i})" title="Set Cover" style="font-size:14px;color:var(--text3);opacity:1;">🖼</button>
+        <button class="ab-del" onclick="deleteAudiobook(event,${i})" title="Remove">✕</button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -2155,6 +2165,52 @@ function skipAudio(s){
 }
 
 
+
+/* ══════════════════════════════════════ AUDIOBOOK COVER ART */
+async function fetchAbCover(title, artist){
+  // Try Open Library by title (works for audiobooks of real books)
+  const urls=[
+    `https://covers.openlibrary.org/b/title/${encodeURIComponent(title)}-L.jpg`,
+    `https://covers.openlibrary.org/b/title/${encodeURIComponent(title)}-M.jpg`,
+  ];
+  for(const url of urls){
+    try{
+      const res=await fetch(url,{cache:'force-cache'});
+      if(!res.ok) continue;
+      const blob=await res.blob();
+      if(blob.size<2000) continue; // placeholder, skip
+      return new Promise(r=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.readAsDataURL(blob);});
+    }catch{}
+  }
+  return null;
+}
+
+async function setAbCoverFromUrl(e,idx){e.stopPropagation();
+  const url=prompt('Enter cover image URL (or leave blank to fetch from Open Library):');
+  const item=audiobookShelf[idx];
+  if(!item) return;
+  if(url&&url.trim()){
+    item.artUrl=url.trim();
+    await abDbPut(item);
+    renderAudiobookShelf();
+    toast('Cover updated ✓','ok');
+  } else {
+    toast('Fetching cover…');
+    const art=await fetchAbCover(item.title,item.artist);
+    if(art){item.artUrl=art;await abDbPut(item);renderAudiobookShelf();toast('Cover found ✓','ok');}
+    else toast('No cover found — try entering a URL manually.','err');
+  }
+}
+
+async function removeAbCover(idx){
+  const item=audiobookShelf[idx];
+  if(!item) return;
+  item.artUrl=null;
+  await abDbPut(item);
+  renderAudiobookShelf();
+  toast('Cover removed.');
+}
+
 /* ══════════════════════════════════════ AB INLINE PLAYER CONTROLS */
 function abUpdateProgress(){
   if(!abAudioEl||!abAudioEl.duration) return;
@@ -2236,6 +2292,53 @@ function abSetSpeed(r){
   document.querySelectorAll('#ab-player .sp-btn').forEach(b=>
     b.classList.toggle('active',parseFloat(b.textContent)===r)
   );
+}
+
+
+/* ══════════════════════════════════════ AB COVER ART */
+async function fetchAbCover(idx){
+  const item=audiobookShelf[idx];
+  if(!item) return;
+  if(item.artUrl){ toast('Cover already set. Delete and re-import to change.'); return; }
+
+  toast(`Searching cover for "${item.title}"…`);
+
+  // Try Open Library by title (works for many audiobooks that are also books)
+  const title=encodeURIComponent(item.title);
+  const artist=encodeURIComponent(item.artist);
+  const urls=[
+    `https://covers.openlibrary.org/b/title/${title}-L.jpg`,
+    `https://covers.openlibrary.org/b/title/${title}-M.jpg`,
+  ];
+
+  // Also try iTunes Search API for music/audiobook artwork (public, no key needed)
+  try{
+    const itunesQuery=encodeURIComponent(`${item.title} ${item.artist}`);
+    const res=await fetch(`https://itunes.apple.com/search?term=${itunesQuery}&media=audiobook&limit=1&entity=audiobook`);
+    if(res.ok){
+      const data=await res.json();
+      const art=data.results?.[0]?.artworkUrl100;
+      if(art) urls.unshift(art.replace('100x100bb','600x600bb'));
+    }
+  }catch{}
+
+  for(const url of urls){
+    try{
+      const res=await fetch(url,{cache:'force-cache'});
+      if(!res.ok) continue;
+      const blob=await res.blob();
+      if(blob.size<2000) continue; // skip tiny placeholders
+      const dataUrl=await new Promise(r=>{
+        const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.readAsDataURL(blob);
+      });
+      item.artUrl=dataUrl;
+      await abDbPut(item);
+      renderAudiobookShelf();
+      toast('Cover art found ✓','ok');
+      return;
+    }catch{}
+  }
+  toast('No cover found — try editing the filename to "Artist - Title.mp3"');
 }
 
 /* ══════════════════════════════════════ DOCUMENT ACTIONS */
@@ -2481,71 +2584,152 @@ function exportTXT(){if(!currentBook)return;const s=currentBook.summary;let t=`B
 function exportAudio(){if(!currentBook?.audioBuffer){toast('Use the Audio Files section to export individual files.','err');return;}const url=URL.createObjectURL(buf2blob(pcmToWav(currentBook.audioBuffer)));const a=document.createElement('a');a.href=url;a.download=`brvty-${slug(currentBook.summary?.title||'book')}-${currentBook.audioMode||'audio'}.wav`;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);toast('WAV exported ✓','ok');}
 
 /* ══════════════════════════════════════ VAULT */
+// Safe base64 encoder that handles large ArrayBuffers without stack overflow
+function safeBtoa(buf){
+  const bytes=new Uint8Array(buf);
+  let b64='';
+  // Process byte-by-byte — avoids spread operator stack limit on large files
+  for(let i=0;i<bytes.length;i++) b64+=String.fromCharCode(bytes[i]);
+  return btoa(b64);
+}
+
 async function exportVault(){
   if(!library.length){toast('Library is empty.','err');return;}
   toast('Building vault…');
-  const vault={version:'5.0',exportedAt:new Date().toISOString(),app:'BRVTY',books:[]};
+  const vault={version:'6.0',exportedAt:new Date().toISOString(),app:'BRVTY',books:[]};
   for(const book of library){
-    // Consolidate before export so audioFiles is the single source of truth
     consolidateAudioFiles(book);
-    const e={id:book.id,createdAt:book.createdAt,audioVoice:book.audioVoice||null,audioMode:book.audioMode||null,notes:book.notes||'',summary:book.summary,coverUrl:book.coverUrl||null,audioFiles:{},chaptersBase64:{}};
-    // Serialize audioFiles (quick, deep)
+    const e={id:book.id,createdAt:book.createdAt,audioVoice:book.audioVoice||null,
+      audioMode:book.audioMode||null,notes:book.notes||'',summary:book.summary,
+      isDocument:book.isDocument||false,docText:book.docText||'',
+      audioFiles:{},chaptersBase64:{}};
+    // Serialize audioFiles (quick, deep) — use safe encoder
     for(const[fid,fobj] of Object.entries(book.audioFiles||{})){
-      if(!fobj?.pcm||!fobj.pcm.byteLength) continue;
-      const bytes=new Uint8Array(fobj.pcm);let b64='';const ch=8192;
-      for(let i=0;i<bytes.length;i+=ch)b64+=String.fromCharCode(...bytes.subarray(i,i+ch));
-      e.audioFiles[fid]={b64:btoa(b64),voice:fobj.voice||'?',createdAt:fobj.createdAt||''};
+      const pcm=fobj?.pcm;
+      if(!pcm||!(pcm instanceof ArrayBuffer)||pcm.byteLength===0) continue;
+      try{
+        e.audioFiles[fid]={b64:safeBtoa(pcm),voice:fobj.voice||'?',createdAt:fobj.createdAt||''};
+      }catch(encErr){
+        console.warn('Audio encode failed for',fid,encErr);
+      }
     }
     // Serialize chapters
     for(const[cid,buf] of Object.entries(book.chapters||{})){
       if(!buf||!buf.byteLength) continue;
-      const bytes=new Uint8Array(buf);let b64='';const ch=8192;
-      for(let i=0;i<bytes.length;i+=ch)b64+=String.fromCharCode(...bytes.subarray(i,i+ch));
-      e.chaptersBase64[cid]=btoa(b64);
+      try{
+        e.chaptersBase64[cid]=safeBtoa(buf);
+      }catch(encErr){
+        console.warn('Chapter encode failed for',cid,encErr);
+      }
     }
     vault.books.push(e);
   }
   const json=JSON.stringify(vault,null,2);
+  const sizeMB=(json.length/1024/1024).toFixed(1);
   dlFile(`brvty-vault-${new Date().toISOString().slice(0,10)}.folio`,json,'application/json');
-  toast(`Vault saved — ${library.length} book(s) ✓`,'ok');
+  toast(`Vault saved — ${library.length} book(s), ${sizeMB}MB ✓`,'ok');
 }
+// Safe base64 decoder — avoids charCodeAt stack issues on large strings
+function safeAtob(b64str){
+  const bs=atob(b64str);
+  const b=new Uint8Array(bs.length);
+  for(let i=0;i<bs.length;i++) b[i]=bs.charCodeAt(i);
+  return b.buffer;
+}
+
 async function importVault(){
   const inp=document.createElement('input');inp.type='file';inp.accept='.folio,.json';
   inp.onchange=async e=>{
-    const file=e.target.files[0];if(!file)return;toast('Reading vault…');
+    const file=e.target.files[0];if(!file)return;
+    const sizeMB=(file.size/1024/1024).toFixed(1);
+    toast(`Reading vault (${sizeMB}MB)…`);
     try{
-      const vault=JSON.parse(await file.text());
-      if(!Array.isArray(vault.books))throw new Error('Invalid vault file.');
-      let imp=0,sk=0;
+      const text=await file.text();
+      let vault;
+      try{ vault=JSON.parse(text); }
+      catch(pe){ throw new Error('JSON parse failed — file may be corrupted.'); }
+      if(!Array.isArray(vault.books))throw new Error('Invalid vault format.');
+      
+      let imp=0,sk=0,audioRestored=0;
       for(const entry of vault.books){
-        if(library.find(b=>b.id===entry.id)){sk++;continue;}
-        const book={id:entry.id||Date.now().toString(),createdAt:entry.createdAt||new Date().toISOString(),summary:entry.summary,audioVoice:entry.audioVoice||null,audioMode:entry.audioMode||null,notes:entry.notes||'',coverUrl:entry.coverUrl||null,audioBuffer:null,audioFiles:{},chapters:{}};
-        // Restore audioFiles (new format)
+        // Skip by ID match OR by title+author match (catches duplicates on fresh devices)
+        const entryTitle=(entry.summary?.title||'').toLowerCase().trim();
+        const entryAuthor=(entry.summary?.author||'').toLowerCase().trim();
+        const isDupe=library.find(b=>
+          b.id===entry.id ||
+          ((b.summary?.title||'').toLowerCase().trim()===entryTitle &&
+           (b.summary?.author||'').toLowerCase().trim()===entryAuthor &&
+           entryTitle!=='')
+        );
+        if(isDupe){sk++;continue;}
+        toast(`Importing "${entry.summary?.title||'book'}"…`);
+        
+        const book={
+          id:entry.id||Date.now().toString(),
+          createdAt:entry.createdAt||new Date().toISOString(),
+          summary:entry.summary,
+          audioVoice:entry.audioVoice||null,
+          audioMode:entry.audioMode||null,
+          notes:entry.notes||'',
+          coverUrl:entry.coverUrl||null,
+          docText:entry.docText||null,
+          isDocument:entry.isDocument||false,
+          isSample:entry.isSample||false,
+          audioBuffer:null,
+          audioFiles:{},
+          chapters:{}
+        };
+
+        // Restore audioFiles (current format: {b64, voice, createdAt})
         for(const[fid,fobj] of Object.entries(entry.audioFiles||{})){
           try{
             if(!fobj?.b64) continue;
-            const bs=atob(fobj.b64);const b=new Uint8Array(bs.length);
-            for(let i=0;i<bs.length;i++)b[i]=bs.charCodeAt(i);
-            book.audioFiles[fid]={pcm:b.buffer,voice:fobj.voice||'?',createdAt:fobj.createdAt||''};
-          }catch{}
+            book.audioFiles[fid]={pcm:safeAtob(fobj.b64),voice:fobj.voice||'?',createdAt:fobj.createdAt||''};
+            audioRestored++;
+          }catch(ae){console.warn('Audio restore failed',fid,ae);}
         }
-        // Restore legacy audioBase64 (old vault format) → promote to audioFiles
-        if(entry.audioBase64 && !Object.keys(book.audioFiles).length){
+
+        // Legacy: audioBase64 (pre-v6 single-file format)
+        if(entry.audioBase64&&!Object.keys(book.audioFiles).length){
           try{
-            const bs=atob(entry.audioBase64);const b=new Uint8Array(bs.length);
-            for(let i=0;i<bs.length;i++)b[i]=bs.charCodeAt(i);
             const mode=entry.audioMode||'quick';
-            book.audioFiles[mode]={pcm:b.buffer,voice:entry.audioVoice||'?',createdAt:entry.createdAt||''};
-          }catch{}
+            book.audioFiles[mode]={pcm:safeAtob(entry.audioBase64),voice:entry.audioVoice||'?',createdAt:entry.createdAt||''};
+            audioRestored++;
+          }catch(ae){console.warn('Legacy audio restore failed',ae);}
         }
-        // Restore chapters
-        for(const[cid,b64] of Object.entries(entry.chaptersBase64||{})){try{const bs=atob(b64);const b=new Uint8Array(bs.length);for(let i=0;i<bs.length;i++)b[i]=bs.charCodeAt(i);book.chapters[cid]=b.buffer;}catch{}}
-        await dbPut(book);library.unshift(book);imp++;
+
+        // Chapters
+        for(const[cid,b64] of Object.entries(entry.chaptersBase64||{})){
+          try{ book.chapters[cid]=safeAtob(b64);audioRestored++; }
+          catch(ce){console.warn('Chapter restore failed',cid,ce);}
+        }
+
+        await dbPut(book);
+        library.unshift(book);
+        imp++;
       }
-      library.sort((a,b)=>b.id-a.id);renderLibrary();
-      toast(`Imported ${imp}${sk?`, ${sk} skipped`:''}${imp?' ✓':''}`,imp?'ok':'');
-      if(imp>0)loadBook(library[0]);closeSettings();
-    }catch(err){toast('Import failed: '+err.message,'err');}
+
+      library.sort((a,b)=>b.id-a.id);
+      renderLibrary();
+      const msg=`Imported ${imp} book(s)${sk?`, ${sk} skipped`:''}, ${audioRestored} audio file(s) ✓`;
+      toast(msg,'ok');
+      if(imp>0){
+        loadBook(library[0]);
+        // Always re-fetch covers fresh from Open Library after import
+        // (vault covers may be stale or the new export format excludes them)
+        library.slice(0,imp).forEach(book=>{
+          if(book.summary?.title&&!book.isDocument){
+            fetchCover(book.summary).then(url=>{
+              if(url){book.coverUrl=url;dbPut(book);renderLibrary();}
+            }).catch(()=>{});
+          }
+        });
+      }
+      closeSettings();
+    }catch(err){
+      console.error('Import error:',err);
+      toast('Import failed: '+err.message,'err');
+    }
   };inp.click();
 }
 
