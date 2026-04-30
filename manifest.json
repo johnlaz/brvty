@@ -1,7 +1,7 @@
 {
   "name": "BRVTY — Book Intelligence",
   "short_name": "BRVTY",
-  "description": "AI-powered book summaries, chapter audio, and cover art for your commute.",
+  "description": "AI-powered book summaries, chapter audio, audio file manager.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0d0e12",
