@@ -2056,22 +2056,50 @@ function updateAbBadge(){
 }
 
 // Wire togglePlay and skipAudio to also control AB player when it's active
-const _origTogglePlay=togglePlay;
+// NOTE: These replace the originals defined earlier — no override chain needed
+// because the AB check is at the top and falls through to book audio naturally.
 function togglePlay(){
+  // Audiobook takes priority when one is active
   if(currentAbIdx>=0&&abAudioEl){
     if(abAudioEl.paused){
-      abAudioEl.play().then(()=>{document.getElementById('play-btn').textContent='⏸';document.getElementById('car-play').textContent='⏸';animateWave(true);}).catch(()=>{});
+      abAudioEl.play().then(()=>{
+        document.getElementById('play-btn').textContent='⏸';
+        document.getElementById('car-play').textContent='⏸';
+        animateWave(true);
+      }).catch(e=>toast('Playback: '+e.message,'err'));
     } else {
-      abAudioEl.pause();document.getElementById('play-btn').textContent='▶';document.getElementById('car-play').textContent='▶';animateWave(false);
+      abAudioEl.pause();
+      document.getElementById('play-btn').textContent='▶';
+      document.getElementById('car-play').textContent='▶';
+      animateWave(false);
     }
     return;
   }
-  _origTogglePlay();
+  // Fall through to book audio
+  if(!audioEl) return;
+  if(audioEl.paused){
+    audioEl.play().then(()=>{
+      document.getElementById('play-btn').textContent='⏸';
+      document.getElementById('car-play').textContent='⏸';
+      animateWave(true);
+    }).catch(e=>toast('Playback: '+e.message,'err'));
+  } else {
+    audioEl.pause();
+    document.getElementById('play-btn').textContent='▶';
+    document.getElementById('car-play').textContent='▶';
+    animateWave(false);
+    if(currentBook&&prefs.resume) playPos[currentBook.id]=audioEl.currentTime;
+    renderAudioFileManager();
+  }
 }
-const _origSkipAudio=skipAudio;
+
 function skipAudio(s){
-  if(currentAbIdx>=0&&abAudioEl){abAudioEl.currentTime=Math.max(0,Math.min(abAudioEl.duration||0,abAudioEl.currentTime+s));return;}
-  _origSkipAudio(s);
+  if(currentAbIdx>=0&&abAudioEl){
+    abAudioEl.currentTime=Math.max(0,Math.min(abAudioEl.duration||0,abAudioEl.currentTime+s));
+    return;
+  }
+  if(!audioEl) return;
+  audioEl.currentTime=Math.max(0,Math.min(audioEl.duration||0,audioEl.currentTime+s));
 }
 
 /* ══════════════════════════════════════ DOCUMENT ACTIONS */
@@ -2206,25 +2234,25 @@ function resetPlayer(){
   animateWave(false);
 }
 
-function togglePlay(){
-  if(!audioEl)return;
-  if(audioEl.paused){
-    audioEl.play().then(()=>{document.getElementById('play-btn').textContent='⏸';document.getElementById('car-play').textContent='⏸';animateWave(true);}).catch(e=>toast('Playback: '+e.message,'err'));
-  }else{
-    audioEl.pause();
-    document.getElementById('play-btn').textContent='▶';document.getElementById('car-play').textContent='▶';
-    animateWave(false);
-    if(currentBook&&prefs.resume)playPos[currentBook.id]=audioEl.currentTime;
-    renderAudioFileManager();
-  }
-}
-
 function onEnded(){document.getElementById('play-btn').textContent='▶';document.getElementById('car-play').textContent='▶';animateWave(false);if(currentBook)playPos[currentBook.id]=0;currentlyPlayingId=null;renderAudioFileManager();}
 function onTimeUpdate(){if(!audioEl||!audioEl.duration)return;const p=(audioEl.currentTime/audioEl.duration)*100;setProg(p);document.getElementById('time-cur').textContent=fmt(audioEl.currentTime);document.getElementById('car-prog').style.width=p+'%';document.getElementById('car-time').textContent=fmt(audioEl.currentTime);if(currentBook&&prefs.resume)playPos[currentBook.id]=audioEl.currentTime;}
 function setProg(p){document.getElementById('prog-fill').style.width=p+'%';document.getElementById('prog-thumb').style.left=p+'%';}
-function seekAudio(e){if(!audioEl||!audioEl.duration)return;const r=document.getElementById('prog-track').getBoundingClientRect();audioEl.currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*audioEl.duration;}
-function skipAudio(s){if(!audioEl)return;audioEl.currentTime=Math.max(0,Math.min(audioEl.duration||0,audioEl.currentTime+s));}
-function setSpeed(r){if(audioEl)audioEl.playbackRate=r;document.querySelectorAll('.sp-btn').forEach(b=>b.classList.toggle('active',parseFloat(b.textContent)===r));}
+function seekAudio(e){
+  // Progress bar seek — works for both audiobook and book audio
+  if(currentAbIdx>=0&&abAudioEl&&abAudioEl.duration){
+    const r=document.getElementById('prog-track').getBoundingClientRect();
+    abAudioEl.currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*abAudioEl.duration;
+    return;
+  }
+  if(!audioEl||!audioEl.duration)return;
+  const r=document.getElementById('prog-track').getBoundingClientRect();
+  audioEl.currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*audioEl.duration;
+}
+function setSpeed(r){
+  if(currentAbIdx>=0&&abAudioEl) abAudioEl.playbackRate=r;
+  if(audioEl) audioEl.playbackRate=r;
+  document.querySelectorAll('.sp-btn').forEach(b=>b.classList.toggle('active',parseFloat(b.textContent)===r));
+}
 function fmt(s){if(!isFinite(s))return'0:00';return`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;}
 
 function selectVoice(btn){document.querySelectorAll('.voice-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');selectedVoice=btn.dataset.voice;}
