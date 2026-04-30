@@ -1,29 +1,15 @@
 {
-  "name": "BRVTY \u2014 Book Intelligence",
+  "name": "BRVTY — Book Intelligence",
   "short_name": "BRVTY",
-  "description": "AI-powered book summaries with audio narration for your commute.",
+  "description": "AI-powered book summaries, chapter audio, and cover art for your commute.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0d0e12",
   "theme_color": "#0d0e12",
   "orientation": "portrait-primary",
   "icons": [
-    {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
   ],
-  "categories": [
-    "books",
-    "education",
-    "productivity"
-  ]
+  "categories": ["books", "education", "productivity"]
 }
