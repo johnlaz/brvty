@@ -324,6 +324,50 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
 .rb-btn:disabled{opacity:.35;cursor:not-allowed;}
 .voice-select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;padding:8px 10px;outline:none;-webkit-appearance:none;margin-top:8px;}
 
+
+/* AUDIOBOOK SHELF */
+#page-audiobooks{padding:0;}
+.ab-toolbar{padding:12px 14px;border-bottom:1px solid var(--border);background:var(--bg2);display:flex;gap:8px;align-items:center;position:sticky;top:0;z-index:10;}
+.ab-import-btn{background:var(--blue-dim);border:1px solid var(--blue);border-radius:var(--r);color:var(--blue);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;padding:7px 14px;cursor:pointer;flex-shrink:0;transition:all .15s;}
+.ab-import-btn:hover{background:var(--blue);color:#fff;}
+.ab-count{font-size:9px;color:var(--text3);letter-spacing:1px;margin-left:auto;}
+.ab-shelf{padding:0;}
+.ab-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;position:relative;}
+.ab-item:hover{background:var(--bg3);}
+.ab-item.active{background:var(--blue-glow);}
+.ab-item.active .ab-bar{background:var(--blue);}
+.ab-bar{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:0 2px 2px 0;}
+.ab-art{width:48px;height:48px;border-radius:var(--r);background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;overflow:hidden;}
+.ab-art img{width:100%;height:100%;object-fit:cover;}
+.ab-info{flex:1;min-width:0;}
+.ab-title{font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+.ab-item.active .ab-title{color:var(--blue2);}
+.ab-artist{font-size:10px;color:var(--text3);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ab-meta{font-size:9px;color:var(--text3);}
+.ab-actions{display:flex;gap:4px;flex-shrink:0;}
+.ab-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;padding:6px;transition:color .15s;}
+.ab-del:hover{color:var(--red);}
+.ab-now-playing{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--blue-glow);border-bottom:1px solid var(--blue);font-size:10px;color:var(--blue);letter-spacing:1px;}
+.ab-wave{display:flex;align-items:center;gap:2px;height:14px;}
+.ab-wbar{width:2px;border-radius:1px;background:var(--blue);animation:abwave .6s ease-in-out infinite alternate;}
+.ab-wbar:nth-child(2){animation-delay:.15s;}
+.ab-wbar:nth-child(3){animation-delay:.3s;}
+@keyframes abwave{from{height:4px}to{height:12px}}
+.ab-empty{padding:60px 24px;text-align:center;color:var(--text3);font-size:11px;line-height:1.9;}
+.ab-size-warn{font-size:9px;color:var(--amber);padding:6px 14px;border-bottom:1px solid var(--border);display:none;}
+
+/* LIBRARY FILTER PILLS */
+.lib-filter-row{display:flex;gap:6px;padding:8px 14px 0;}
+.lib-filt-btn{background:var(--surface);border:1px solid var(--border);border-radius:20px;color:var(--text3);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;padding:4px 12px;cursor:pointer;transition:all .15s;}
+.lib-filt-btn.active{border-color:var(--blue);color:var(--blue);background:var(--blue-dim);}
+
+/* GENERATE PAGE — watermark logo + PDF button fix */
+#gen-watermark{display:flex;align-items:center;justify-content:center;padding:20px 0 8px;opacity:1;pointer-events:none;user-select:none;flex-shrink:0;}
+#gen-watermark .wm-logo{font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:10px;color:rgba(61,142,240,0.06);line-height:1;}
+#gen-watermark .wm-icon{font-size:36px;opacity:0.06;margin-bottom:4px;}
+.gen-label-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.gen-label-row .gen-label{margin-bottom:0;}
+
 /* DESKTOP */
 @media(min-width:700px){
   #page-generate{max-width:580px;margin:0 auto;padding:28px 24px;}
@@ -348,7 +392,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
 </div>
 
 <header id="topbar">
-  <div class="logo">BRVTY<span class="logo-ver">v5.3</span></div>
+  <div class="logo">BRVTY<span class="logo-ver">v6</span></div>
   <div class="tb-right">
     <div class="status-dot" id="status-dot"></div>
     <button class="icon-btn" onclick="openCarMode()" title="Car Mode">🚗</button>
@@ -378,8 +422,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
         </div>
       </div>
       <div>
-        <div class="gen-label" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>Context / Notes <span style="opacity:.5;font-size:8px">(optional)</span></span>
+        <div class="gen-label-row">
+          <div class="gen-label">Context / Notes <span style="opacity:.5;font-size:8px">(optional)</span></div>
           <button class="pdf-btn" onclick="importPDF('book-context')" title="Import PDF">📄 PDF</button>
         </div>
         <textarea class="gen-field mono" id="book-context" placeholder="Paste excerpts, highlights, or notes — or import a PDF. Gemini's 1M context window incorporates everything…"></textarea>
@@ -395,8 +439,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
         <input class="gen-field" id="doc-title" placeholder="My document…" autocomplete="off" style="font-size:16px;">
       </div>
       <div>
-        <div class="gen-label" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>Document Text</span>
+        <div class="gen-label-row">
+          <div class="gen-label">Document Text</div>
           <button class="pdf-btn" onclick="importPDF('doc-text')" title="Import PDF">📄 PDF</button>
         </div>
         <textarea class="gen-field mono" id="doc-text" placeholder="Paste your document, article, report, or notes here…" style="min-height:120px;"></textarea>
@@ -430,6 +474,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
       </div>
 
       <button class="btn-generate" id="doc-generate-btn" onclick="generateDocument()" style="margin-top:8px;">✦ Generate</button>
+    </div>
+
+    <!-- BRVTY WATERMARK — fills whitespace -->
+    <div id="gen-watermark">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <div class="wm-icon">📖</div>
+        <div class="wm-logo">BRVTY</div>
+      </div>
     </div>
 
     <!-- SHARED LOADING + BOTTOM ACTIONS -->
@@ -578,6 +630,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
     </div>
     <div class="lib-search-wrap">
       <input id="lib-search" placeholder="Search title, author, theme…" oninput="filterLibrary(this.value)" autocomplete="off" style="margin-bottom:8px;">
+      <!-- Filter pills -->
+      <div class="lib-filter-row" style="margin-bottom:8px;">
+        <button class="lib-filt-btn active" data-filt="all"  onclick="setLibFilter('all')">All</button>
+        <button class="lib-filt-btn" data-filt="book" onclick="setLibFilter('book')">Books</button>
+        <button class="lib-filt-btn" data-filt="doc"  onclick="setLibFilter('doc')">Documents</button>
+      </div>
       <div style="display:flex;gap:6px;align-items:center;">
         <span style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);flex-shrink:0;">Sort</span>
         <div style="display:flex;gap:4px;flex:1;overflow-x:auto;" id="sort-bar">
@@ -591,6 +649,22 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
       </div>
     </div>
     <div id="lib-list"></div>
+  </div>
+
+  <!-- AUDIOBOOKS -->
+  <div class="page" id="page-audiobooks">
+    <div class="ab-toolbar">
+      <button class="ab-import-btn" onclick="importAudiobooks()">＋ Import Audio Files</button>
+      <div class="ab-count" id="ab-count">0 files</div>
+    </div>
+    <div class="ab-size-warn" id="ab-size-warn"></div>
+    <div id="ab-now-playing" style="display:none;" class="ab-now-playing">
+      <div class="ab-wave"><div class="ab-wbar"></div><div class="ab-wbar"></div><div class="ab-wbar"></div></div>
+      <span id="ab-now-title">Playing…</span>
+    </div>
+    <div id="ab-shelf" class="ab-shelf">
+      <div class="ab-empty">No audio files yet.<br>Tap <strong>Import Audio Files</strong> to add MP3, M4A, WAV, FLAC, or AAC files.<br><span style="font-size:9px;opacity:.6;">Files are stored locally in your browser.</span></div>
+    </div>
   </div>
 
 </div>
@@ -610,6 +684,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
   <button class="nav-tab" data-tab="library" onclick="switchTab('library')">
     <span class="nav-icon">☰</span>Library
     <span class="nav-badge" id="lib-badge">0</span>
+  </button>
+  <button class="nav-tab" data-tab="audiobooks" onclick="switchTab('audiobooks')">
+    <span class="nav-icon">🎧</span>Audio<wbr>books
+    <span class="nav-badge" id="ab-badge">0</span>
   </button>
 </nav>
 
@@ -656,7 +734,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
     </div>
     <div class="s-sec">
       <div class="s-lbl">About</div>
-      <div class="s-hint" style="line-height:2.1;"><strong style="color:var(--text)">BRVTY v5.0</strong> — Book Intelligence PWA<br>Gemini 2.5 Flash · Chapter Audio · Audio File Manager<br>Sample books included · All data stored locally<br>All data stored locally · No account required</div>
+      <div class="s-hint" style="line-height:2.1;"><strong style="color:var(--text)">BRVTY v6.0</strong> — Book Intelligence PWA<br>Gemini 2.5 Flash · Chapter Audio · Audio File Manager<br>Sample books included · All data stored locally<br>All data stored locally · No account required</div>
     </div>
   </div>
 </div>
@@ -1695,6 +1773,311 @@ async function deleteAudioFile(fileId){
 }
 
 
+
+/* ══════════════════════════════════════ AUDIOBOOK SHELF */
+let audiobookShelf = []; // [{id, title, artist, album, duration, sizeMB, mimeType, dataUrl, artUrl, addedAt}]
+let currentAbIdx = -1;
+let abAudioEl = null;
+let abAudioUrl = null;
+
+const AB_STORE = 'brvty_audiobooks';
+
+// IDB store for audiobooks (separate from books store)
+function initAbStore(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open('brvty_ab_v1',1);
+    r.onupgradeneeded=e=>{
+      if(!e.target.result.objectStoreNames.contains('ab'))
+        e.target.result.createObjectStore('ab',{keyPath:'id'});
+    };
+    r.onsuccess=e=>{window._abDb=e.target.result;res()};
+    r.onerror=()=>rej(r.error);
+  });
+}
+const abDbPut=item=>new Promise((res,rej)=>{const t=window._abDb.transaction('ab','readwrite');t.objectStore('ab').put(item).onsuccess=res;t.onerror=()=>rej(t.error)});
+const abDbAll=()=>new Promise((res,rej)=>{const t=window._abDb.transaction('ab','readonly');const r=t.objectStore('ab').getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+const abDbDel=id=>new Promise((res,rej)=>{const t=window._abDb.transaction('ab','readwrite');t.objectStore('ab').delete(id).onsuccess=res;t.onerror=()=>rej(t.error)});
+
+// Read audio file metadata (title, artist, duration) via Audio element
+function getAudioMeta(url){
+  return new Promise(res=>{
+    const a=new Audio(url);
+    a.addEventListener('loadedmetadata',()=>res({duration:a.duration}));
+    a.addEventListener('error',()=>res({duration:0}));
+    setTimeout(()=>res({duration:0}),4000);
+  });
+}
+
+// Extract embedded art from MP3 ID3 tags via a simple scan
+// Falls back to null — art display is optional
+function tryExtractArt(arrayBuffer){
+  try{
+    const bytes=new Uint8Array(arrayBuffer.slice(0,128000));
+    // Look for APIC frame in ID3v2
+    for(let i=0;i<bytes.length-10;i++){
+      if(bytes[i]===0x41&&bytes[i+1]===0x50&&bytes[i+2]===0x49&&bytes[i+3]===0x43){
+        // Found APIC — skip frame header, find JPEG/PNG start
+        for(let j=i+10;j<Math.min(i+128000,bytes.length-4);j++){
+          if((bytes[j]===0xFF&&bytes[j+1]===0xD8)||
+             (bytes[j]===0x89&&bytes[j+1]===0x50&&bytes[j+2]===0x4E&&bytes[j+3]===0x47)){
+            // Find end of image
+            let end=j+4;
+            while(end<bytes.length&&end<j+5000000) end++;
+            const imgBytes=bytes.slice(j,Math.min(j+500000,bytes.length));
+            const mimeType=bytes[j]===0xFF?'image/jpeg':'image/png';
+            const b64=btoa(String.fromCharCode(...imgBytes));
+            return`data:${mimeType};base64,${b64}`;
+          }
+        }
+      }
+    }
+  }catch{}
+  return null;
+}
+
+async function importAudiobooks(){
+  // Try File System Access API (Chrome/Edge desktop) first
+  const ACCEPTED=['audio/mpeg','audio/mp4','audio/wav','audio/flac','audio/aac','audio/ogg','audio/x-m4a','audio/m4a','video/mp4'];
+
+  let files=[];
+  if(window.showOpenFilePicker){
+    try{
+      const handles=await window.showOpenFilePicker({
+        multiple:true,
+        types:[{description:'Audio Files',accept:{'audio/*':['.mp3','.m4a','.aac','.wav','.flac','.ogg','.mp4']}}]
+      });
+      files=await Promise.all(handles.map(h=>h.getFile()));
+    }catch(e){
+      if(e.name==='AbortError') return; // user cancelled
+      // Fall through to input picker
+    }
+  }
+
+  if(!files.length){
+    // Fallback: file input picker
+    files=await new Promise(res=>{
+      const inp=document.createElement('input');
+      inp.type='file';inp.multiple=true;inp.accept='audio/*,.mp3,.m4a,.aac,.wav,.flac,.ogg';
+      inp.onchange=e=>res(Array.from(e.target.files||[]));
+      inp.oncancel=()=>res([]);
+      inp.click();
+    });
+  }
+
+  if(!files.length) return;
+
+  let imported=0, skipped=0, totalMB=0;
+  toast(`Importing ${files.length} file(s)…`);
+  setStatus('working');
+
+  for(const file of files){
+    const sizeMB=(file.size/1024/1024).toFixed(1);
+    totalMB+=parseFloat(sizeMB);
+
+    if(totalMB>800){
+      toast(`Storage limit reached — ${skipped} file(s) skipped.`,'err');
+      break;
+    }
+
+    // Read file as ArrayBuffer
+    const arrayBuffer=await file.arrayBuffer();
+    const artUrl=tryExtractArt(arrayBuffer);
+
+    // Create object URL for metadata reading
+    const blob=new Blob([arrayBuffer],{type:file.type||'audio/mpeg'});
+    const tempUrl=URL.createObjectURL(blob);
+    const {duration}=await getAudioMeta(tempUrl);
+    URL.revokeObjectURL(tempUrl);
+
+    // Parse filename for title/artist (filename format: "Artist - Title.mp3")
+    const fname=file.name.replace(/\.[^.]+$/,'');
+    const parts=fname.split(' - ');
+    const title=parts.length>1?parts.slice(1).join(' - ').trim():fname;
+    const artist=parts.length>1?parts[0].trim():'Unknown Artist';
+
+    const item={
+      id:'ab_'+Date.now()+'_'+Math.random().toString(36).slice(2),
+      title,artist,
+      filename:file.name,
+      sizeMB:parseFloat(sizeMB),
+      duration,
+      mimeType:file.type||'audio/mpeg',
+      arrayBuffer,
+      artUrl,
+      addedAt:new Date().toISOString()
+    };
+
+    await abDbPut(item);
+    audiobookShelf.push(item);
+    imported++;
+  }
+
+  renderAudiobookShelf();
+  updateAbBadge();
+  setStatus('ready');
+
+  if(totalMB>400){
+    const warn=document.getElementById('ab-size-warn');
+    warn.style.display='';
+    warn.textContent=`⚠ Audiobook storage at ${totalMB.toFixed(0)}MB — iOS may limit storage to ~500MB per origin.`;
+  }
+
+  toast(`Imported ${imported} file(s)${skipped?`, ${skipped} skipped`:''}${imported?' ✓':''}`,imported?'ok':'');
+}
+
+function renderAudiobookShelf(){
+  const shelf=document.getElementById('ab-shelf');
+  const countEl=document.getElementById('ab-count');
+  countEl.textContent=`${audiobookShelf.length} file${audiobookShelf.length!==1?'s':''}`;
+
+  if(!audiobookShelf.length){
+    shelf.innerHTML='<div class="ab-empty">No audio files yet.<br>Tap <strong>Import Audio Files</strong> to add MP3, M4A, WAV, FLAC, or AAC files.<br><span style="font-size:9px;opacity:.6;">Files are stored locally in your browser.</span></div>';
+    return;
+  }
+
+  shelf.innerHTML=audiobookShelf.map((item,i)=>{
+    const isPlaying=currentAbIdx===i;
+    const artEl=item.artUrl
+      ?`<img src="${item.artUrl}" alt="">`
+      :`🎧`;
+    const dur=item.duration?fmt(item.duration):'—';
+    return`<div class="ab-item${isPlaying?' active':''}" onclick="playAudiobook(${i})">
+      <div class="ab-bar"></div>
+      <div class="ab-art">${artEl}</div>
+      <div class="ab-info">
+        <div class="ab-title">${esc(item.title)}</div>
+        <div class="ab-artist">${esc(item.artist)}</div>
+        <div class="ab-meta">${dur} · ${item.sizeMB}MB · ${item.filename.split('.').pop().toUpperCase()}</div>
+      </div>
+      <button class="ab-del" onclick="deleteAudiobook(event,${i})" title="Remove">✕</button>
+    </div>`;
+  }).join('');
+}
+
+async function playAudiobook(idx){
+  const item=audiobookShelf[idx];
+  if(!item) return;
+
+  // If already playing this — toggle
+  if(currentAbIdx===idx&&abAudioEl&&!abAudioEl.paused){
+    abAudioEl.pause();
+    document.getElementById('play-btn').textContent='▶';
+    document.getElementById('car-play').textContent='▶';
+    animateWave(false);
+    document.getElementById('ab-now-playing').style.display='none';
+    renderAudiobookShelf();
+    return;
+  }
+
+  // Stop any existing AB playback
+  if(abAudioEl){abAudioEl.pause();abAudioEl=null;}
+  if(abAudioUrl){URL.revokeObjectURL(abAudioUrl);abAudioUrl=null;}
+
+  // Stop any book audio
+  if(audioEl){audioEl.pause();audioEl=null;}
+
+  currentAbIdx=idx;
+
+  const blob=new Blob([item.arrayBuffer],{type:item.mimeType});
+  abAudioUrl=URL.createObjectURL(blob);
+  abAudioEl=new Audio(abAudioUrl);
+  abAudioEl.addEventListener('timeupdate',()=>{
+    if(!abAudioEl||!abAudioEl.duration) return;
+    const p=(abAudioEl.currentTime/abAudioEl.duration)*100;
+    setProg(p);
+    document.getElementById('time-cur').textContent=fmt(abAudioEl.currentTime);
+    document.getElementById('car-prog').style.width=p+'%';
+    document.getElementById('car-time').textContent=fmt(abAudioEl.currentTime);
+  });
+  abAudioEl.addEventListener('loadedmetadata',()=>{
+    document.getElementById('time-tot').textContent=fmt(abAudioEl.duration);
+  });
+  abAudioEl.addEventListener('ended',()=>{
+    document.getElementById('play-btn').textContent='▶';
+    document.getElementById('car-play').textContent='▶';
+    animateWave(false);
+    document.getElementById('ab-now-playing').style.display='none';
+    currentAbIdx=-1;renderAudiobookShelf();
+    // Auto-advance
+    const next=idx+1;
+    if(next<audiobookShelf.length) playAudiobook(next);
+  });
+
+  abAudioEl.play().then(()=>{
+    document.getElementById('play-btn').textContent='⏸';
+    document.getElementById('car-play').textContent='⏸';
+    animateWave(true);
+    // Update main player display
+    document.getElementById('player-title').textContent=item.title;
+    document.getElementById('player-author').textContent=item.artist;
+    document.getElementById('car-title').textContent=item.title;
+    document.getElementById('car-author').textContent=item.artist;
+    document.getElementById('car-chapter').textContent='Audiobook';
+    document.getElementById('play-btn').disabled=false;
+    const mb2=document.getElementById('player-mode-badge');
+    mb2.textContent='Audiobook';mb2.style.display='';mb2.style.borderColor='var(--amber)';
+    // Now playing bar
+    const npBar=document.getElementById('ab-now-playing');
+    npBar.style.display='flex';
+    document.getElementById('ab-now-title').textContent=item.title;
+    renderAudiobookShelf();
+    // Media Session
+    if('mediaSession'in navigator){
+      navigator.mediaSession.metadata=new MediaMetadata({
+        title:item.title,artist:item.artist,album:'BRVTY Audiobooks'
+      });
+      navigator.mediaSession.setActionHandler('play',()=>abAudioEl?.play());
+      navigator.mediaSession.setActionHandler('pause',()=>abAudioEl?.pause());
+      navigator.mediaSession.setActionHandler('previoustrack',()=>{if(idx>0)playAudiobook(idx-1);});
+      navigator.mediaSession.setActionHandler('nexttrack',()=>{if(idx+1<audiobookShelf.length)playAudiobook(idx+1);});
+    }
+  }).catch(e=>toast('Playback error: '+e.message,'err'));
+}
+
+async function deleteAudiobook(e,idx){
+  e.stopPropagation();
+  const item=audiobookShelf[idx];
+  if(!item||!confirm(`Remove "${item.title}"?`)) return;
+  if(currentAbIdx===idx){
+    if(abAudioEl){abAudioEl.pause();abAudioEl=null;}
+    if(abAudioUrl){URL.revokeObjectURL(abAudioUrl);abAudioUrl=null;}
+    currentAbIdx=-1;
+    document.getElementById('ab-now-playing').style.display='none';
+  }
+  await abDbDel(item.id);
+  audiobookShelf.splice(idx,1);
+  // Re-index currentAbIdx
+  if(currentAbIdx>idx) currentAbIdx--;
+  renderAudiobookShelf();
+  updateAbBadge();
+  toast('Removed.');
+}
+
+function updateAbBadge(){
+  const b=document.getElementById('ab-badge');
+  b.textContent=audiobookShelf.length;
+  b.classList.toggle('show',audiobookShelf.length>0);
+}
+
+// Wire togglePlay and skipAudio to also control AB player when it's active
+const _origTogglePlay=togglePlay;
+function togglePlay(){
+  if(currentAbIdx>=0&&abAudioEl){
+    if(abAudioEl.paused){
+      abAudioEl.play().then(()=>{document.getElementById('play-btn').textContent='⏸';document.getElementById('car-play').textContent='⏸';animateWave(true);}).catch(()=>{});
+    } else {
+      abAudioEl.pause();document.getElementById('play-btn').textContent='▶';document.getElementById('car-play').textContent='▶';animateWave(false);
+    }
+    return;
+  }
+  _origTogglePlay();
+}
+const _origSkipAudio=skipAudio;
+function skipAudio(s){
+  if(currentAbIdx>=0&&abAudioEl){abAudioEl.currentTime=Math.max(0,Math.min(abAudioEl.duration||0,abAudioEl.currentTime+s));return;}
+  _origSkipAudio(s);
+}
+
 /* ══════════════════════════════════════ DOCUMENT ACTIONS */
 
 // Re-read the stored document text using current voice settings
@@ -1873,14 +2256,17 @@ function modalBgClick(e){if(e.target===document.getElementById('settings-modal')
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeCarMode();closeSettings();}});
 
 /* ══════════════════════════════════════ LIBRARY */
-let libFilter='',libSort='date';
+let libFilter='',libSort='date',libTypeFilter='all';
+function setLibFilter(t){libTypeFilter=t;document.querySelectorAll('.lib-filt-btn').forEach(b=>b.classList.toggle('active',b.dataset.filt===t));renderLibrary();}
 function setSort(s){libSort=s;document.querySelectorAll('.sort-btn').forEach(b=>b.classList.toggle('active',b.dataset.sort===s));renderLibrary();}
 function renderLibrary(){
   const list=document.getElementById('lib-list');
   const badge=document.getElementById('lib-badge');
   badge.textContent=library.length;badge.classList.toggle('show',library.length>0);
-  // Full-text search across title, author, thesis, pillars, action items
+  // Full-text search + type filter
   const f=library.filter(b=>{
+    if(libTypeFilter==='book'&&b.isDocument) return false;
+    if(libTypeFilter==='doc'&&!b.isDocument) return false;
     if(!libFilter)return true;
     const q=libFilter.toLowerCase();
     const s=b.summary||{};
@@ -2217,6 +2603,14 @@ async function boot(){
   document.getElementById('doc-text').addEventListener('input',e=>document.getElementById('doc-char-hint').textContent=e.target.value.length.toLocaleString()+' chars');
   document.getElementById('book-title').addEventListener('keydown',e=>{if(e.key==='Enter')generateSummary();});
   if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
+  // Init audiobook store
+  try{
+    await initAbStore();
+    audiobookShelf=await abDbAll();
+    audiobookShelf.sort((a,b)=>new Date(a.addedAt)-new Date(b.addedAt));
+    renderAudiobookShelf();
+    updateAbBadge();
+  }catch(e){console.warn('Audiobook store init failed:',e);}
   updateOnlineStatus();
   _splashBootDone=true;_splashCheck();
 }
