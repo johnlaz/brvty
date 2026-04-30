@@ -310,6 +310,20 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
 #splash.fade-out{animation:splashOut .5s ease forwards;}
 @keyframes splashOut{to{opacity:0;pointer-events:none}}
 
+
+/* GENERATE MODE TOGGLE */
+.mode-toggle{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:4px;}
+.mode-tab{flex:1;padding:9px 8px;text-align:center;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);cursor:pointer;border:none;background:none;transition:all .15s;}
+.mode-tab.active{background:var(--blue-dim);color:var(--blue);}
+
+/* DOCUMENT READ-BACK OPTIONS */
+.readback-opts{display:flex;gap:6px;margin-top:8px;}
+.rb-btn{flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:9px 6px;cursor:pointer;transition:all .15s;text-align:center;line-height:1.5;}
+.rb-btn:hover{border-color:var(--blue);color:var(--blue);}
+.rb-btn.active{border-color:var(--blue);color:var(--blue);background:var(--blue-dim);}
+.rb-btn:disabled{opacity:.35;cursor:not-allowed;}
+.voice-select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;padding:8px 10px;outline:none;-webkit-appearance:none;margin-top:8px;}
+
 /* DESKTOP */
 @media(min-width:700px){
   #page-generate{max-width:580px;margin:0 auto;padding:28px 24px;}
@@ -334,7 +348,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
 </div>
 
 <header id="topbar">
-  <div class="logo">BRVTY<span class="logo-ver">v5</span></div>
+  <div class="logo">BRVTY<span class="logo-ver">v5.3</span></div>
   <div class="tb-right">
     <div class="status-dot" id="status-dot"></div>
     <button class="icon-btn" onclick="openCarMode()" title="Car Mode">🚗</button>
@@ -347,22 +361,78 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
 
   <!-- GENERATE -->
   <div class="page active" id="page-generate">
-    <div>
-      <div class="gen-label">Book Title &amp; Author</div>
-      <div class="gen-row">
-        <input class="gen-field" id="book-title" placeholder="Title…" autocomplete="off" autocorrect="off" autocapitalize="words">
-        <input class="gen-field" id="book-author" placeholder="Author…" autocomplete="off">
-      </div>
+
+    <!-- MODE TOGGLE -->
+    <div class="mode-toggle">
+      <button class="mode-tab active" id="mtab-book" onclick="setGenMode('book')">📖 Book</button>
+      <button class="mode-tab" id="mtab-doc" onclick="setGenMode('doc')">📄 Document</button>
     </div>
-    <div>
-      <div class="gen-label" style="display:flex;justify-content:space-between;align-items:center;">
-        <span>Context / Notes <span style="opacity:.5;font-size:8px">(optional)</span></span>
-        <button class="pdf-btn" onclick="importPDF()" title="Import PDF">📄 Import PDF</button>
+
+    <!-- BOOK MODE -->
+    <div id="gen-book-mode">
+      <div>
+        <div class="gen-label">Book Title &amp; Author</div>
+        <div class="gen-row">
+          <input class="gen-field" id="book-title" placeholder="Title…" autocomplete="off" autocorrect="off" autocapitalize="words">
+          <input class="gen-field" id="book-author" placeholder="Author…" autocomplete="off">
+        </div>
       </div>
-      <textarea class="gen-field mono" id="book-context" placeholder="Paste excerpts, highlights, or notes — or import a PDF above. Gemini's 1M context window incorporates everything…"></textarea>
-      <div class="char-hint" id="char-hint">0 chars</div>
+      <div>
+        <div class="gen-label" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>Context / Notes <span style="opacity:.5;font-size:8px">(optional)</span></span>
+          <button class="pdf-btn" onclick="importPDF('book-context')" title="Import PDF">📄 PDF</button>
+        </div>
+        <textarea class="gen-field mono" id="book-context" placeholder="Paste excerpts, highlights, or notes — or import a PDF. Gemini's 1M context window incorporates everything…"></textarea>
+        <div class="char-hint" id="char-hint">0 chars</div>
+      </div>
+      <button class="btn-generate" id="generate-btn" onclick="generateSummary()">✦ Generate Summary</button>
     </div>
-    <button class="btn-generate" id="generate-btn" onclick="generateSummary()">✦ Generate Summary</button>
+
+    <!-- DOCUMENT MODE -->
+    <div id="gen-doc-mode" style="display:none;">
+      <div>
+        <div class="gen-label">Document Title <span style="opacity:.5;font-size:8px">(optional)</span></div>
+        <input class="gen-field" id="doc-title" placeholder="My document…" autocomplete="off" style="font-size:16px;">
+      </div>
+      <div>
+        <div class="gen-label" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>Document Text</span>
+          <button class="pdf-btn" onclick="importPDF('doc-text')" title="Import PDF">📄 PDF</button>
+        </div>
+        <textarea class="gen-field mono" id="doc-text" placeholder="Paste your document, article, report, or notes here…" style="min-height:120px;"></textarea>
+        <div class="char-hint" id="doc-char-hint">0 chars</div>
+      </div>
+
+      <!-- OUTPUT OPTIONS -->
+      <div class="gen-label" style="margin-top:4px;">Output</div>
+      <div class="readback-opts">
+        <button class="rb-btn active" id="rb-summary" onclick="setDocOutput('summary')">
+          ✦ Full Summary<br><span style="font-size:8px;opacity:.6">Gemini analysis + audio</span>
+        </button>
+        <button class="rb-btn" id="rb-readback" onclick="setDocOutput('readback')">
+          ♪ Direct Read-back<br><span style="font-size:8px;opacity:.6">TTS only, no API call</span>
+        </button>
+      </div>
+
+      <!-- READBACK VOICE OPTIONS (shown when readback selected) -->
+      <div id="readback-voice-opts" style="display:none;margin-top:10px;">
+        <div class="gen-label">Voice Engine</div>
+        <div class="readback-opts">
+          <button class="rb-btn active" id="rv-gemini" onclick="setReadbackVoice('gemini')">
+            Gemini TTS<br><span style="font-size:8px;opacity:.6">High quality</span>
+          </button>
+          <button class="rb-btn" id="rv-browser" onclick="setReadbackVoice('browser')">
+            Browser Voice<br><span style="font-size:8px;opacity:.6">Free · Offline</span>
+          </button>
+        </div>
+        <!-- Browser voice picker — only shown when browser selected -->
+        <select class="voice-select" id="browser-voice-select" style="display:none;"></select>
+      </div>
+
+      <button class="btn-generate" id="doc-generate-btn" onclick="generateDocument()" style="margin-top:8px;">✦ Generate</button>
+    </div>
+
+    <!-- SHARED LOADING + BOTTOM ACTIONS -->
     <div class="loading-card" id="loading-card">
       <div class="spinner"></div>
       <div class="loading-stage" id="loading-stage">Connecting to Gemini…</div>
@@ -695,15 +765,16 @@ async function fetchCover(summary){
 }
 
 /* ══════════════════════════════════════ PDF IMPORT */
-function importPDF(){
+function importPDF(targetId='book-context'){
   const inp=document.createElement('input');
   inp.type='file';inp.accept='.pdf,.txt,.md';
   inp.onchange=async e=>{
     const file=e.target.files[0]; if(!file) return;
     if(file.name.endsWith('.txt')||file.name.endsWith('.md')){
       const text=await file.text();
-      document.getElementById('book-context').value=text;
-      document.getElementById('char-hint').textContent=text.length.toLocaleString()+' chars';
+      document.getElementById(targetId).value=text;
+      const hintId=targetId==='doc-text'?'doc-char-hint':'char-hint';
+      document.getElementById(hintId).textContent=text.length.toLocaleString()+' chars';
       toast(`${file.name} loaded (${(text.length/1000).toFixed(0)}K chars)`,'ok');
       return;
     }
@@ -723,12 +794,205 @@ function importPDF(){
         text+=content.items.map(x=>x.str).join(' ')+'\n';
       }
       text=text.trim();
-      document.getElementById('book-context').value=text;
-      document.getElementById('char-hint').textContent=text.length.toLocaleString()+' chars';
+      document.getElementById(targetId).value=text;
+      const hintId=targetId==='doc-text'?'doc-char-hint':'char-hint';
+      document.getElementById(hintId).textContent=text.length.toLocaleString()+' chars';
       toast(`PDF loaded — ${pdf.numPages} pages, ${(text.length/1000).toFixed(0)}K chars`,'ok');
     }catch(err){toast('PDF error: '+err.message,'err');}
   };
   inp.click();
+}
+
+
+/* ══════════════════════════════════════ DOCUMENT MODE */
+let genMode='book', docOutput='summary', readbackVoice='gemini';
+
+function setGenMode(mode){
+  genMode=mode;
+  document.getElementById('mtab-book').classList.toggle('active',mode==='book');
+  document.getElementById('mtab-doc').classList.toggle('active',mode==='doc');
+  document.getElementById('gen-book-mode').style.display=mode==='book'?'':'none';
+  document.getElementById('gen-doc-mode').style.display=mode==='doc'?'':'none';
+}
+
+function setDocOutput(mode){
+  docOutput=mode;
+  document.getElementById('rb-summary').classList.toggle('active',mode==='summary');
+  document.getElementById('rb-readback').classList.toggle('active',mode==='readback');
+  document.getElementById('readback-voice-opts').style.display=mode==='readback'?'':'none';
+  const docBtn=document.getElementById('doc-generate-btn');
+  docBtn.textContent=mode==='summary'?'✦ Generate Summary':'♪ Read Document';
+}
+
+function setReadbackVoice(v){
+  readbackVoice=v;
+  document.getElementById('rv-gemini').classList.toggle('active',v==='gemini');
+  document.getElementById('rv-browser').classList.toggle('active',v==='browser');
+  document.getElementById('browser-voice-select').style.display=v==='browser'?'':'none';
+  if(v==='browser') populateBrowserVoices();
+}
+
+function populateBrowserVoices(){
+  const sel=document.getElementById('browser-voice-select');
+  const voices=speechSynthesis.getVoices().filter(v=>v.lang.startsWith('en'));
+  if(!voices.length){
+    // Voices may load async
+    speechSynthesis.onvoiceschanged=()=>{
+      const vv=speechSynthesis.getVoices().filter(v=>v.lang.startsWith('en'));
+      sel.innerHTML=vv.map((v,i)=>`<option value="${i}">${v.name} (${v.lang})</option>`).join('');
+    };
+    return;
+  }
+  sel.innerHTML=voices.map((v,i)=>`<option value="${i}">${v.name} (${v.lang})</option>`).join('');
+}
+
+async function generateDocument(){
+  const text=document.getElementById('doc-text').value.trim();
+  if(!text){toast('Paste or import document text first.','err');return;}
+  const title=document.getElementById('doc-title').value.trim()||'Document';
+
+  if(docOutput==='summary'){
+    // Full Summary path — copy text into book-context and run normal summary
+    document.getElementById('book-title').value=title;
+    document.getElementById('book-author').value='';
+    document.getElementById('book-context').value=text;
+    setGenMode('book');
+    await generateSummary();
+    return;
+  }
+
+  // ── DIRECT READ-BACK ──────────────────────────────────────────────────────
+  const key=getKey();
+  if(readbackVoice==='gemini'&&!key){
+    toast('Gemini key needed for Gemini TTS — use Browser Voice or add key in Settings ⚙','err');
+    return;
+  }
+
+  document.getElementById('doc-generate-btn').disabled=true;
+  document.getElementById('doc-generate-btn').textContent='♪ Processing…';
+  document.getElementById('loading-card').classList.add('active');
+  setStage('Preparing document for read-back…');
+  setStatus('working');
+
+  try{
+    if(readbackVoice==='browser'){
+      await browserReadback(text, title);
+    } else {
+      await geminiReadback(text, title, key);
+    }
+  }catch(e){
+    toast('Read-back error: '+e.message,'err');
+    setStatus('error');
+  }finally{
+    document.getElementById('doc-generate-btn').disabled=false;
+    document.getElementById('doc-generate-btn').textContent='♪ Read Document';
+    document.getElementById('loading-card').classList.remove('active');
+  }
+}
+
+// ── BROWSER VOICE READ-BACK ──────────────────────────────────────────────────
+function browserReadback(text, title){
+  return new Promise((res,rej)=>{
+    if(!('speechSynthesis' in window)){rej(new Error('Browser TTS not supported.'));return;}
+    speechSynthesis.cancel(); // stop any current speech
+
+    const voices=speechSynthesis.getVoices().filter(v=>v.lang.startsWith('en'));
+    const voiceIdx=parseInt(document.getElementById('browser-voice-select').value)||0;
+    const voice=voices[voiceIdx]||voices[0]||null;
+
+    // Split into sentences for reliable browser TTS (long strings get cut off)
+    const sentences=text.match(/[^.!?]+[.!?]+[\s]*/g)||[text];
+    let idx=0;
+
+    // Create a dummy book entry for the library so it appears like any other
+    const book={
+      id:Date.now().toString(),
+      summary:{
+        title,author:'Document',year:new Date().getFullYear().toString(),
+        genre:['Document'],reading_time:'—',difficulty:'Accessible',
+        thesis:`Read-back of: ${title}`,
+        key_pillars:[],deep_dive:[],action_items:[],memorable_quotes:[],
+        audio_script:text.slice(0,2000), // first 2000 chars as script placeholder
+        read_next:[]
+      },
+      coverUrl:null,audioBuffer:null,audioMode:null,audioVoice:'Browser',
+      audioFiles:{},chapters:{},notes:'',
+      isDocument:true,docText:text,
+      createdAt:new Date().toISOString()
+    };
+
+    // Store in library first so it shows up
+    dbPut(book).then(()=>{
+      library.unshift(book);
+      renderLibrary();
+      loadBook(book);
+      switchTab('summary');
+      toast(`"${title}" added to library — browser reading aloud…`,'ok');
+    });
+
+    function speakNext(){
+      if(idx>=sentences.length){res();return;}
+      const utt=new SpeechSynthesisUtterance(sentences[idx++].trim());
+      if(voice) utt.voice=voice;
+      utt.rate=0.95;utt.pitch=1;
+      utt.onend=speakNext;
+      utt.onerror=e=>{ if(e.error!=='interrupted') rej(new Error(e.error)); else res(); };
+      speechSynthesis.speak(utt);
+    }
+    speakNext();
+    setStatus('ready');
+  });
+}
+
+// ── GEMINI TTS READ-BACK ─────────────────────────────────────────────────────
+async function geminiReadback(text, title, key){
+  // Chunk at sentence boundaries, 500 words per chunk
+  const chunks=splitAtSentences(text, 500);
+  const totalChunks=chunks.length;
+  const silenceBuf=makeSilence(180);
+  const pcmBufs=[];
+
+  for(let i=0;i<chunks.length;i++){
+    setStage(`Narrating segment ${i+1} of ${totalChunks}…`);
+    const pcm=await callTTS(chunks[i],selectedVoice,key);
+    pcmBufs.push(pcm);
+    if(i<chunks.length-1) pcmBufs.push(silenceBuf);
+  }
+
+  setStage('Finalizing…');
+  const totalBytes=pcmBufs.reduce((s,b)=>s+b.byteLength,0);
+  const combined=new Uint8Array(totalBytes);let off=0;
+  for(const b of pcmBufs){combined.set(new Uint8Array(b),off);off+=b.byteLength;}
+
+  const book={
+    id:Date.now().toString(),
+    summary:{
+      title,author:'Document',year:new Date().getFullYear().toString(),
+      genre:['Document'],reading_time:'—',difficulty:'Accessible',
+      thesis:`Read-back of: ${title}`,
+      key_pillars:[],deep_dive:[],action_items:[],memorable_quotes:[],
+      audio_script:text.slice(0,2000),
+      read_next:[]
+    },
+    coverUrl:null,
+    audioBuffer:combined.buffer,audioMode:'quick',audioVoice:selectedVoice,
+    audioFiles:{quick:{pcm:combined.buffer,voice:selectedVoice,createdAt:new Date().toISOString()}},
+    chapters:{},notes:'',isDocument:true,docText:text,
+    createdAt:new Date().toISOString()
+  };
+
+  await dbPut(book);
+  library.unshift(book);
+  renderLibrary();
+  loadBook(book);
+  loadAudioBlob(buf2blob(pcmToWav(combined.buffer)));
+  switchTab('audio');
+
+  const mins=Math.round(combined.buffer.byteLength/2/24000/60);
+  toast(`"${title}" ready — ~${mins} min ✓`,'ok');
+  setStatus('ready');
+  document.getElementById('audio-badge').classList.add('show');
+  setupMediaSession(title,'Document Read-back');
 }
 
 /* ══════════════════════════════════════ GENERATE SUMMARY */
@@ -824,6 +1088,32 @@ function loadBook(book){
       </div>
     </div>`).join('');
 
+
+  // Document books get a special view — show the raw text + action buttons
+  if(book.isDocument){
+    const docText=book.docText||'No document text stored.';
+    const hasAudio=Object.keys(book.audioFiles||{}).some(k=>(book.audioFiles[k]?.pcm?.byteLength||0)>0);
+    sc.innerHTML=`
+      <div class="sum-hero">
+        <div class="cover-placeholder">📄</div>
+        <div class="sum-meta">
+          <div class="sum-title">${esc(s.title||'Document')}</div>
+          <div class="sum-author" style="color:var(--text3);font-style:normal;font-size:12px;">${(docText.length/1000).toFixed(0)}K chars · Document</div>
+          <div class="chips"><span class="chip">Document</span></div>
+          <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
+            <button onclick="rereadDocument()" style="background:var(--blue-dim);border:1px solid var(--blue);border-radius:var(--r);color:var(--blue);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:6px 12px;cursor:pointer;">♪ Read Again</button>
+            <button onclick="convertDocToSummary()" style="background:none;border:1px solid var(--border2);border-radius:var(--r);color:var(--text3);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:6px 12px;cursor:pointer;" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text3)'">✦ Convert to Book</button>
+            ${hasAudio?`<button onclick="switchTab('audio')" style="background:none;border:1px solid var(--border2);border-radius:var(--r);color:var(--text3);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:6px 12px;cursor:pointer;" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text3)'">▶ Audio</button>`:''}
+          </div>
+        </div>
+      </div>
+      <div class="sum-body">
+        <div>
+          <div class="sec-hd">Document Text</div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);line-height:1.8;white-space:pre-wrap;max-height:420px;overflow-y:auto;">${esc(docText)}</div>
+        </div>
+      </div>`;
+  } else {
   sc.innerHTML=`
     <div class="sum-hero">
       ${coverHTML}
@@ -845,6 +1135,7 @@ function loadBook(book){
       ${qtHTML?`<div><div class="sec-hd">Memorable Quotes</div><div class="quotes-list">${qtHTML}</div></div>`:''}
       ${recHTML?`<div><div class="sec-hd">Read Next</div><div class="rec-list">${recHTML}</div></div>`:''}
     </div>`;
+  }
 
   document.getElementById('player-title').textContent=s.title||'Untitled';
   document.getElementById('player-author').textContent=s.author||'—';
@@ -1180,7 +1471,7 @@ Output ONLY the narration text. Nothing else.`;
     const wordCount=fullScript.split(/\s+/).length;
 
     // ── Sentence-boundary chunks → TTS ────────────────────────────────────
-    const chunks=splitAtSentences(fullScript,350);
+    const chunks=splitAtSentences(fullScript,500);
     const totalChunks=chunks.length;
     const silenceBuf=makeSilence(180);
     const pcmBufs=[];
@@ -1401,6 +1692,100 @@ async function deleteAudioFile(fileId){
     (Object.keys(currentBook.audioFiles||{}).length>0);
   if(!hasAny) document.getElementById('audio-badge').classList.remove('show');
   toast('Audio file deleted.');
+}
+
+
+/* ══════════════════════════════════════ DOCUMENT ACTIONS */
+
+// Re-read the stored document text using current voice settings
+async function rereadDocument(){
+  if(!currentBook||!currentBook.isDocument){return;}
+  const text=currentBook.docText||currentBook.summary?.audio_script||'';
+  if(!text){toast('No document text stored.','err');return;}
+  const title=currentBook.summary?.title||'Document';
+
+  // Show voice picker inline
+  const key=getKey();
+  const useGemini=key&&readbackVoice!=='browser';
+
+  toast(useGemini?'Generating audio…':'Reading aloud…');
+  setStatus('working');
+
+  try{
+    if(useGemini){
+      // Generate Gemini TTS and save as audio file on existing book
+      const chunks=splitAtSentences(text,500);
+      const silenceBuf=makeSilence(180);
+      const pcmBufs=[];
+      for(let i=0;i<chunks.length;i++){
+        setStage(`Narrating segment ${i+1} of ${chunks.length}…`);
+        const pcm=await callTTS(chunks[i],selectedVoice,key);
+        pcmBufs.push(pcm);
+        if(i<chunks.length-1) pcmBufs.push(silenceBuf);
+      }
+      const totalBytes=pcmBufs.reduce((s,b)=>s+b.byteLength,0);
+      const combined=new Uint8Array(totalBytes);let off=0;
+      for(const b of pcmBufs){combined.set(new Uint8Array(b),off);off+=b.byteLength;}
+      // Save audio to current book
+      if(!currentBook.audioFiles)currentBook.audioFiles={};
+      currentBook.audioFiles.quick={pcm:combined.buffer,voice:selectedVoice,createdAt:new Date().toISOString()};
+      currentBook.audioBuffer=combined.buffer;currentBook.audioMode='quick';
+      await dbPut(currentBook);
+      loadAudioBlob(buf2blob(pcmToWav(combined.buffer)));
+      renderAudioFileManager();
+      renderLibrary();
+      document.getElementById('audio-badge').classList.add('show');
+      switchTab('audio');
+      const mins=Math.round(combined.buffer.byteLength/2/24000/60);
+      toast(`Audio ready — ~${mins} min ✓`,'ok');
+      setupMediaSession(title,'Document Read-back');
+    } else {
+      // Browser TTS
+      if(!('speechSynthesis'in window)){toast('Browser TTS not available.','err');return;}
+      speechSynthesis.cancel();
+      const voices=speechSynthesis.getVoices().filter(v=>v.lang.startsWith('en'));
+      const voice=voices[0]||null;
+      const sentences=text.match(/[^.!?]+[.!?]+[\s]*/g)||[text];
+      let idx=0;
+      function speakNext(){
+        if(idx>=sentences.length){setStatus('ready');return;}
+        const utt=new SpeechSynthesisUtterance(sentences[idx++].trim());
+        if(voice)utt.voice=voice;
+        utt.rate=0.95;utt.onend=speakNext;
+        speechSynthesis.speak(utt);
+      }
+      speakNext();
+      toast('Reading aloud with browser voice…');
+    }
+    setStatus('ready');
+  }catch(e){toast('Read error: '+e.message,'err');setStatus('error');}
+}
+
+// Convert a document library entry into a full Gemini book summary
+async function convertDocToSummary(){
+  if(!currentBook||!currentBook.isDocument){return;}
+  const text=currentBook.docText||'';
+  if(!text){toast('No document text to convert.','err');return;}
+  const title=currentBook.summary?.title||'Document';
+  const key=getKey();
+  if(!key){toast('Gemini key required to convert — add in Settings ⚙','err');openSettings();return;}
+
+  if(!confirm(`Convert "${title}" into a full book summary? This will replace the document entry.`)){return;}
+
+  // Pre-fill the book generate form and trigger summary
+  document.getElementById('book-title').value=title;
+  document.getElementById('book-author').value='';
+  document.getElementById('book-context').value=text;
+
+  // Remove the old document book first
+  await dbDel(currentBook.id);
+  library=library.filter(b=>b.id!==currentBook.id);
+  currentBook=null;
+
+  setGenMode('book');
+  switchTab('generate');
+  toast('Converting — generating full summary…');
+  await generateSummary();
 }
 
 /* ══════════════════════════════════════ CORE TTS CALL */
@@ -1625,7 +2010,7 @@ let toastTimer;
 function toast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='show'+(type?' '+type:'');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.className='',2800);}
 function setStatus(s){document.getElementById('status-dot').className='status-dot'+(s?' '+s:'');}
 function setStage(s){document.getElementById('loading-stage').textContent=s;}
-function clearForm(){['book-title','book-author','book-context'].forEach(id=>document.getElementById(id).value='');document.getElementById('char-hint').textContent='0 chars';}
+function clearForm(){['book-title','book-author','book-context','doc-title','doc-text'].forEach(id=>document.getElementById(id).value='');document.getElementById('char-hint').textContent='0 chars';document.getElementById('doc-char-hint').textContent='0 chars';}
 
 /* ══════════════════════════════════════ SPLASH */
 var _splashMinDone=false,_splashBootDone=false;
@@ -1829,6 +2214,7 @@ async function boot(){
   setStatus(getKey()?'ready':'');
   if(library.length) loadBook(library[0]);
   document.getElementById('book-context').addEventListener('input',e=>document.getElementById('char-hint').textContent=e.target.value.length.toLocaleString()+' chars');
+  document.getElementById('doc-text').addEventListener('input',e=>document.getElementById('doc-char-hint').textContent=e.target.value.length.toLocaleString()+' chars');
   document.getElementById('book-title').addEventListener('keydown',e=>{if(e.key==='Enter')generateSummary();});
   if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
   updateOnlineStatus();
