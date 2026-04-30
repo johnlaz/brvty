@@ -455,7 +455,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
       <!-- DEEP DIVE MODE -->
       <div id="audio-panel-deep" style="display:none;">
         <div class="sec-hd">Deep Narration</div>
-        <div style="font-size:10px;color:var(--text3);line-height:1.7;margin-bottom:12px;">~1,800–2,000 word audiobook narration generated in two structured halves, then split at sentence boundaries and narrated in short consistent segments. Complete, uncut, commute-ready.</div>
+        <div style="font-size:10px;color:var(--text3);line-height:1.7;margin-bottom:12px;">1,200–1,500 word audiobook narration — one script call, sentence-boundary chunked TTS with silence padding between segments. Complete and commute-ready.</div>
         <div class="voice-grid" style="margin-bottom:10px;">
           <button class="voice-btn active" data-voice="Aoede" onclick="selectVoice(this)">Aoede</button>
           <button class="voice-btn" data-voice="Puck"   onclick="selectVoice(this)">Puck</button>
@@ -1120,29 +1120,20 @@ async function generateQuickAudio(){
 /* ══════════════════════════════════════ DEEP AUDIO */
 
 // Split text at sentence boundaries so TTS never cuts mid-sentence.
-// Targets ~wordTarget words per chunk, always ending on a full sentence.
 function splitAtSentences(text, wordTarget=350){
-  // Split on sentence-ending punctuation followed by a space or end
-  const sentences = text.match(/[^.!?]+[.!?]+[\s]*/g) || [text];
-  const chunks=[], cur=[];
-  let wordCount=0;
+  const sentences=text.match(/[^.!?]+[.!?]+[\s]*/g)||[text];
+  const chunks=[],cur=[];let wordCount=0;
   for(const sent of sentences){
     const wc=sent.split(/\s+/).length;
-    cur.push(sent); wordCount+=wc;
-    if(wordCount>=wordTarget){
-      chunks.push(cur.join('').trim());
-      cur.length=0; wordCount=0;
-    }
+    cur.push(sent);wordCount+=wc;
+    if(wordCount>=wordTarget){chunks.push(cur.join('').trim());cur.length=0;wordCount=0;}
   }
-  if(cur.length) chunks.push(cur.join('').trim());
+  if(cur.length)chunks.push(cur.join('').trim());
   return chunks.filter(c=>c.length>30);
 }
 
-// Generate silence PCM (16-bit signed, 24kHz) for `ms` milliseconds
-function makeSilence(ms=200){
-  const samples=Math.floor(24000*(ms/1000));
-  return new ArrayBuffer(samples*2); // zero-filled = silence
-}
+// 180ms silence between TTS segments (16-bit PCM, 24kHz)
+function makeSilence(ms=180){return new ArrayBuffer(Math.floor(24000*(ms/1000))*2);}
 
 async function generateDeepAudio(){
   if(!currentBook) return;
@@ -1153,74 +1144,58 @@ async function generateDeepAudio(){
   setStatus('working');
 
   try{
-    // ── STEP 1: Generate Part A — Hook + Pillars ──────────────────────────
-    prog.textContent='Script 1/2 — Hook & Key Pillars…';
+    // ── Single script generation call ─────────────────────────────────────
+    prog.textContent='Generating deep narration script…';
+
     const pillarsText=(s.key_pillars||[]).map((p,i)=>`Pillar ${i+1} — ${p.title}: ${p.description}`).join('\n');
-    const promptA=`You are a master audiobook narrator for "${s.title}"${s.author?` by ${s.author}`:''}.
-
-Write PART ONE of a deep narration (target 900-1000 words). Cover:
-1. A compelling hook that makes the listener immediately engaged (150w)
-2. The book's core thesis and why it matters right now (200w)
-3. Each of these key pillars explored with depth, real examples, and implications for the listener's life (550-650w total):
-${pillarsText}
-
-Core thesis: "${s.thesis}"
-
-Rules: Pure flowing prose. No bullets, no headers, no section labels. Warm, intelligent narration — like a trusted colleague sharing something that changed how they think. End mid-thought if needed; this is Part One of Two.
-Output ONLY the narration. Nothing else.`;
-
-    const r1=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{text:promptA}]}],generationConfig:{temperature:0.75,maxOutputTokens:4096}})});
-    if(!r1.ok){const e=await r1.json();throw new Error(e.error?.message||`HTTP ${r1.status}`);}
-    const partA=(await r1.json()).candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-    if(!partA) throw new Error('Empty script from Part A.');
-
-    // ── STEP 2: Generate Part B — Deep Dive + Actions + Closing ──────────
-    prog.textContent='Script 2/2 — Deep Dive & Closing…';
     const diveText=(s.deep_dive||[]).map(d=>`${d.title}: ${d.insight}`).join('\n');
     const actText=(s.action_items||[]).map((a,i)=>`${i+1}. ${a}`).join('\n');
     const quotesText=(s.memorable_quotes||[]).join('\n');
-    const promptB=`You are continuing a deep audiobook narration of "${s.title}"${s.author?` by ${s.author}`:''}.
 
-Write PART TWO of the narration (target 900-1000 words). Cover:
-1. These deeper insights woven into a coherent narrative (400-450w):
+    const scriptPrompt=`You are a master audiobook narrator for "${s.title}"${s.author?` by ${s.author}`:''}.
+
+Write a complete deep narration (1,200-1,500 words) covering all of the following in flowing prose:
+
+HOOK & THESIS (200w): A compelling opening and the book's core argument.
+Core thesis: "${s.thesis}"
+
+KEY PILLARS (500w total): Each pillar explored with depth and real-world examples.
+${pillarsText}
+
+DEEP INSIGHTS (300w): These insights woven into a coherent narrative.
 ${diveText}
-2. The key actions the listener should take, narrated as a motivational call — not a list (250-300w):
-${actText}
-3. A powerful, memorable closing that leaves the listener inspired, weaving in these quotes naturally (200-250w):
-${quotesText}
 
-Rules: Pure flowing prose. Pick up naturally as if continuing from a previous section. No bullets, no headers. End with a complete, resonant closing sentence.
-Output ONLY the narration. Nothing else.`;
+ACTIONS & CLOSING (200-300w): Actions as motivational narration (not a list), then a powerful closing using these quotes naturally.
+Actions: ${actText}
+Quotes: ${quotesText}
 
-    const r2=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{text:promptB}]}],generationConfig:{temperature:0.75,maxOutputTokens:4096}})});
-    if(!r2.ok){const e=await r2.json();throw new Error(e.error?.message||`HTTP ${r2.status}`);}
-    const partB=(await r2.json()).candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-    if(!partB) throw new Error('Empty script from Part B.');
+Rules: Pure flowing prose only. No bullets, no headers, no section labels. Warm, intelligent, engaging. End with a complete closing sentence.
+Output ONLY the narration text. Nothing else.`;
 
-    const fullScript=partA+'\n\n'+partB;
+    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{text:scriptPrompt}]}],generationConfig:{temperature:0.75,maxOutputTokens:4096}})});
+    if(!r.ok){const e=await r.json();throw new Error(e.error?.message||`HTTP ${r.status}`);}
+    const fullScript=(await r.json()).candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if(!fullScript) throw new Error('Empty narration script.');
+
     const wordCount=fullScript.split(/\s+/).length;
 
-    // ── STEP 3: Split at sentence boundaries & TTS each chunk ─────────────
-    // Target ~350 words per TTS call — well within token limits, consistent voice
-    const chunks=splitAtSentences(fullScript, 350);
+    // ── Sentence-boundary chunks → TTS ────────────────────────────────────
+    const chunks=splitAtSentences(fullScript,350);
     const totalChunks=chunks.length;
-    prog.textContent=`Narrating ${totalChunks} segments (~${wordCount} words)…`;
-
+    const silenceBuf=makeSilence(180);
     const pcmBufs=[];
-    const silenceBuf=makeSilence(180); // 180ms gap between segments
 
     for(let i=0;i<chunks.length;i++){
       prog.textContent=`Narrating segment ${i+1} of ${totalChunks}…`;
       const pcm=await callTTS(chunks[i],selectedVoice,key);
       pcmBufs.push(pcm);
-      // Add silence between segments (not after the last one)
       if(i<chunks.length-1) pcmBufs.push(silenceBuf);
     }
 
-    // ── STEP 4: Concatenate all PCM + store ───────────────────────────────
+    // ── Concatenate & store ───────────────────────────────────────────────
     prog.textContent='Finalizing…';
     const totalBytes=pcmBufs.reduce((s,b)=>s+b.byteLength,0);
-    const combined=new Uint8Array(totalBytes); let off=0;
+    const combined=new Uint8Array(totalBytes);let off=0;
     for(const b of pcmBufs){combined.set(new Uint8Array(b),off);off+=b.byteLength;}
 
     currentBook.audioBuffer=combined.buffer;currentBook.audioVoice=selectedVoice;
