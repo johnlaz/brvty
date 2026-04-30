@@ -455,7 +455,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
       <!-- DEEP DIVE MODE -->
       <div id="audio-panel-deep" style="display:none;">
         <div class="sec-hd">Deep Narration</div>
-        <div style="font-size:10px;color:var(--text3);line-height:1.7;margin-bottom:12px;">A 1,500–2,500 word audiobook-style narration split into 3 segments and joined into a single playable file. Rich, context-heavy, commute-ready.</div>
+        <div style="font-size:10px;color:var(--text3);line-height:1.7;margin-bottom:12px;">~1,800–2,000 word audiobook narration generated in two structured halves, then split at sentence boundaries and narrated in short consistent segments. Complete, uncut, commute-ready.</div>
         <div class="voice-grid" style="margin-bottom:10px;">
           <button class="voice-btn active" data-voice="Aoede" onclick="selectVoice(this)">Aoede</button>
           <button class="voice-btn" data-voice="Puck"   onclick="selectVoice(this)">Puck</button>
@@ -800,6 +800,7 @@ async function generateSummary(){
 /* ══════════════════════════════════════ LOAD BOOK */
 function loadBook(book){
   currentBook=book; const s=book.summary;
+  consolidateAudioFiles(book); // migrate legacy audioBuffer → audioFiles
   document.getElementById('sum-empty').style.display='none';
   const sc=document.getElementById('sum-content'); sc.style.display='block';
   const tags=[...(s.genre||[]),s.difficulty,s.reading_time,s.year].filter(Boolean);
@@ -1117,6 +1118,32 @@ async function generateQuickAudio(){
 }
 
 /* ══════════════════════════════════════ DEEP AUDIO */
+
+// Split text at sentence boundaries so TTS never cuts mid-sentence.
+// Targets ~wordTarget words per chunk, always ending on a full sentence.
+function splitAtSentences(text, wordTarget=350){
+  // Split on sentence-ending punctuation followed by a space or end
+  const sentences = text.match(/[^.!?]+[.!?]+[\s]*/g) || [text];
+  const chunks=[], cur=[];
+  let wordCount=0;
+  for(const sent of sentences){
+    const wc=sent.split(/\s+/).length;
+    cur.push(sent); wordCount+=wc;
+    if(wordCount>=wordTarget){
+      chunks.push(cur.join('').trim());
+      cur.length=0; wordCount=0;
+    }
+  }
+  if(cur.length) chunks.push(cur.join('').trim());
+  return chunks.filter(c=>c.length>30);
+}
+
+// Generate silence PCM (16-bit signed, 24kHz) for `ms` milliseconds
+function makeSilence(ms=200){
+  const samples=Math.floor(24000*(ms/1000));
+  return new ArrayBuffer(samples*2); // zero-filled = silence
+}
+
 async function generateDeepAudio(){
   if(!currentBook) return;
   const key=getKey();if(!key){toast('Add Gemini key in Settings ⚙','err');openSettings();return;}
@@ -1125,54 +1152,77 @@ async function generateDeepAudio(){
   const prog=document.getElementById('deep-progress');prog.style.display='';
   setStatus('working');
 
-  // Build a rich 3-part deep narration script via Gemini
   try{
-    prog.textContent='Part 1/3 — Generating deep narration script…';
+    // ── STEP 1: Generate Part A — Hook + Pillars ──────────────────────────
+    prog.textContent='Script 1/2 — Hook & Key Pillars…';
+    const pillarsText=(s.key_pillars||[]).map((p,i)=>`Pillar ${i+1} — ${p.title}: ${p.description}`).join('\n');
+    const promptA=`You are a master audiobook narrator for "${s.title}"${s.author?` by ${s.author}`:''}.
 
-    // Ask Gemini to write a rich long-form script
-    const scriptPrompt=`You are a master audiobook narrator writing a rich, long-form narration of "${s.title}"${s.author?` by ${s.author}`:''}.
-
-Write a 1,800-2,400 word COMPLETE audiobook narration that covers:
-1. A compelling hook and book introduction (400w)
-2. Each key pillar explored deeply with real-world examples and implications (800w total across all pillars)
-3. The deep dive insights woven into a coherent narrative (400w)
-4. Action items framed as a motivational call to action (200w)
-5. A powerful closing with memorable quotes and final reflection (200-400w)
+Write PART ONE of a deep narration (target 900-1000 words). Cover:
+1. A compelling hook that makes the listener immediately engaged (150w)
+2. The book's core thesis and why it matters right now (200w)
+3. Each of these key pillars explored with depth, real examples, and implications for the listener's life (550-650w total):
+${pillarsText}
 
 Core thesis: "${s.thesis}"
 
-Rules: No bullet points. No headers. Pure flowing prose. Write as if narrating to someone on a 20-minute commute. Intelligent, warm, engaging. The listener is smart and time-poor.
+Rules: Pure flowing prose. No bullets, no headers, no section labels. Warm, intelligent narration — like a trusted colleague sharing something that changed how they think. End mid-thought if needed; this is Part One of Two.
+Output ONLY the narration. Nothing else.`;
 
-Output ONLY the narration text. Nothing else.`;
+    const r1=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{text:promptA}]}],generationConfig:{temperature:0.75,maxOutputTokens:4096}})});
+    if(!r1.ok){const e=await r1.json();throw new Error(e.error?.message||`HTTP ${r1.status}`);}
+    const partA=(await r1.json()).candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if(!partA) throw new Error('Empty script from Part A.');
 
-    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{text:scriptPrompt}]}],generationConfig:{temperature:0.75,maxOutputTokens:3000}})});
-    if(!r.ok){const e=await r.json();throw new Error(e.error?.message||`HTTP ${r.status}`);}
-    const data=await r.json();
-    const fullScript=data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-    if(!fullScript) throw new Error('Empty narration script.');
+    // ── STEP 2: Generate Part B — Deep Dive + Actions + Closing ──────────
+    prog.textContent='Script 2/2 — Deep Dive & Closing…';
+    const diveText=(s.deep_dive||[]).map(d=>`${d.title}: ${d.insight}`).join('\n');
+    const actText=(s.action_items||[]).map((a,i)=>`${i+1}. ${a}`).join('\n');
+    const quotesText=(s.memorable_quotes||[]).join('\n');
+    const promptB=`You are continuing a deep audiobook narration of "${s.title}"${s.author?` by ${s.author}`:''}.
 
-    // Split into ~3 equal chunks for TTS (TTS has token limits)
-    const words=fullScript.split(/\s+/);
-    const chunkSize=Math.ceil(words.length/3);
-    const chunks=[
-      words.slice(0,chunkSize).join(' '),
-      words.slice(chunkSize,chunkSize*2).join(' '),
-      words.slice(chunkSize*2).join(' ')
-    ].filter(c=>c.trim().length>50);
+Write PART TWO of the narration (target 900-1000 words). Cover:
+1. These deeper insights woven into a coherent narrative (400-450w):
+${diveText}
+2. The key actions the listener should take, narrated as a motivational call — not a list (250-300w):
+${actText}
+3. A powerful, memorable closing that leaves the listener inspired, weaving in these quotes naturally (200-250w):
+${quotesText}
 
-    // Generate TTS for each chunk
+Rules: Pure flowing prose. Pick up naturally as if continuing from a previous section. No bullets, no headers. End with a complete, resonant closing sentence.
+Output ONLY the narration. Nothing else.`;
+
+    const r2=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{text:promptB}]}],generationConfig:{temperature:0.75,maxOutputTokens:4096}})});
+    if(!r2.ok){const e=await r2.json();throw new Error(e.error?.message||`HTTP ${r2.status}`);}
+    const partB=(await r2.json()).candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if(!partB) throw new Error('Empty script from Part B.');
+
+    const fullScript=partA+'\n\n'+partB;
+    const wordCount=fullScript.split(/\s+/).length;
+
+    // ── STEP 3: Split at sentence boundaries & TTS each chunk ─────────────
+    // Target ~350 words per TTS call — well within token limits, consistent voice
+    const chunks=splitAtSentences(fullScript, 350);
+    const totalChunks=chunks.length;
+    prog.textContent=`Narrating ${totalChunks} segments (~${wordCount} words)…`;
+
     const pcmBufs=[];
+    const silenceBuf=makeSilence(180); // 180ms gap between segments
+
     for(let i=0;i<chunks.length;i++){
-      prog.textContent=`Part ${i+2}/${chunks.length+1} — Narrating segment ${i+1}…`;
+      prog.textContent=`Narrating segment ${i+1} of ${totalChunks}…`;
       const pcm=await callTTS(chunks[i],selectedVoice,key);
       pcmBufs.push(pcm);
+      // Add silence between segments (not after the last one)
+      if(i<chunks.length-1) pcmBufs.push(silenceBuf);
     }
 
+    // ── STEP 4: Concatenate all PCM + store ───────────────────────────────
     prog.textContent='Finalizing…';
-    // Store deep audio as concatenated PCM (no WAV header until play)
-    const totalPcm=pcmBufs.reduce((s,b)=>s+b.byteLength,0);
-    const combined=new Uint8Array(totalPcm);let off=0;
+    const totalBytes=pcmBufs.reduce((s,b)=>s+b.byteLength,0);
+    const combined=new Uint8Array(totalBytes); let off=0;
     for(const b of pcmBufs){combined.set(new Uint8Array(b),off);off+=b.byteLength;}
+
     currentBook.audioBuffer=combined.buffer;currentBook.audioVoice=selectedVoice;
     currentBook.audioMode='deep';currentBook.deepScript=fullScript;
     if(!currentBook.audioFiles)currentBook.audioFiles={};
@@ -1181,9 +1231,13 @@ Output ONLY the narration text. Nothing else.`;
     checkStorageWarning();
     loadAudioBlob(buf2blob(pcmToWav(combined.buffer)));
     renderAudioFileManager();
-    document.getElementById('exp-wav').disabled=false;document.getElementById('audio-badge').classList.add('show');
-    const deepMB=((combined.buffer.byteLength/1024)/1024).toFixed(1);
-    renderLibrary();toast(`Deep narration ready — ${deepMB}MB ✓`,'ok');setStatus('ready');
+    document.getElementById('exp-wav').disabled=false;
+    document.getElementById('audio-badge').classList.add('show');
+    const deepMB=(combined.buffer.byteLength/1024/1024).toFixed(1);
+    const deepMin=Math.round(combined.buffer.byteLength/2/24000/60);
+    renderLibrary();
+    toast(`Deep narration ready — ~${deepMin} min, ${deepMB}MB ✓`,'ok');
+    setStatus('ready');
     setupMediaSession(currentBook.summary?.title,currentBook.summary?.author);
   }catch(e){toast('Deep audio error: '+e.message,'err');setStatus('error');}
   finally{btn.disabled=false;btn.textContent='♪ Generate Deep Narration';prog.style.display='none';}
@@ -1191,26 +1245,61 @@ Output ONLY the narration text. Nothing else.`;
 
 
 /* ══════════════════════════════════════ AUDIO FILE MANAGER */
+
+// Called once when a book loads — migrates legacy audioBuffer into audioFiles
+// so the manager always works from one source of truth.
+function consolidateAudioFiles(book){
+  if(!book) return;
+  if(!book.audioFiles) book.audioFiles={};
+
+  // If audioBuffer exists but isn't yet in audioFiles, promote it
+  if(book.audioBuffer && book.audioBuffer.byteLength > 0){
+    const mode = book.audioMode || 'quick'; // default legacy audio to quick
+    if(!book.audioFiles[mode]){
+      book.audioFiles[mode] = {
+        pcm: book.audioBuffer,
+        voice: book.audioVoice || '?',
+        createdAt: book.createdAt || new Date().toISOString()
+      };
+      // Save the consolidated version back — also nulls the redundant audioBuffer
+      // so vault export doesn't double-serialize it
+      book.audioBuffer = null;
+      dbPut(book);
+    } else {
+      // audioFiles already has this mode — audioBuffer is redundant, clear it
+      book.audioBuffer = null;
+      dbPut(book);
+    }
+  }
+
+  // Same for chapters — chapters are already keyed correctly, nothing to migrate
+}
+
 function renderAudioFileManager(){
   const el=document.getElementById('audio-file-manager');
   if(!el||!currentBook) return;
+
+  // Always consolidate first so legacy books surface correctly
+  consolidateAudioFiles(currentBook);
+
   const files=currentBook.audioFiles||{};
   const chapters=currentBook.chapters||{};
   const defs=getChapterDefs(currentBook.summary||{});
   const rows=[];
 
   // Quick summary
-  const qf=files.quick||(currentBook.audioBuffer&&currentBook.audioMode==='quick'?{pcm:currentBook.audioBuffer,voice:currentBook.audioVoice||'?'}:null);
-  if(qf) rows.push({id:'quick',label:'Quick Summary',icon:'⚡',voice:qf.voice||'?',pcm:qf.pcm,type:'file'});
+  if(files.quick && files.quick.pcm && files.quick.pcm.byteLength > 0)
+    rows.push({id:'quick',label:'Quick Summary',icon:'⚡',voice:files.quick.voice||'?',pcm:files.quick.pcm});
 
   // Deep narration
-  const df=files.deep||(currentBook.audioBuffer&&currentBook.audioMode==='deep'?{pcm:currentBook.audioBuffer,voice:currentBook.audioVoice||'?'}:null);
-  if(df) rows.push({id:'deep',label:'Deep Narration',icon:'🎙',voice:df.voice||'?',pcm:df.pcm,type:'file'});
+  if(files.deep && files.deep.pcm && files.deep.pcm.byteLength > 0)
+    rows.push({id:'deep',label:'Deep Narration',icon:'🎙',voice:files.deep.voice||'?',pcm:files.deep.pcm});
 
-  // Chapters
+  // Chapters — only show ones that actually have audio
   defs.forEach((def,i)=>{
     const buf=chapters[def.id];
-    if(buf) rows.push({id:'ch_'+def.id,label:def.label,icon:def.icon,voice:'—',pcm:buf,type:'chapter',chDef:def,chIdx:i});
+    if(buf && buf.byteLength > 0)
+      rows.push({id:'ch_'+def.id,label:def.label,icon:def.icon,voice:'—',pcm:buf,type:'chapter',chDef:def,chIdx:i});
   });
 
   if(!rows.length){
@@ -1219,13 +1308,13 @@ function renderAudioFileManager(){
   }
 
   el.innerHTML=rows.map(row=>{
-    const sizeMB=(row.pcm.byteLength/1024/1024).toFixed(1);
+    const mb = row.pcm && row.pcm.byteLength ? (row.pcm.byteLength/1024/1024).toFixed(1) : '?';
     const isPlaying=currentlyPlayingId===row.id;
     return`<div class="af-item${isPlaying?' af-playing':''}" id="af-${row.id}">
       <div class="af-icon">${row.icon}</div>
       <div class="af-info">
         <div class="af-label">${esc(row.label)}</div>
-        <div class="af-meta">${row.voice!=='—'?row.voice+' · ':''}${sizeMB}MB${isPlaying?' · <span style="color:var(--green)">Playing</span>':''}</div>
+        <div class="af-meta">${row.voice!=='—'?row.voice+' · ':''}${mb}MB${isPlaying?' · <span style="color:var(--green)">Playing</span>':''}</div>
       </div>
       <div class="af-actions">
         <button class="af-btn" onclick="playAudioFile('${row.id}')" title="Play">${isPlaying?'⏸':'▶'}</button>
@@ -1239,21 +1328,13 @@ function renderAudioFileManager(){
 let currentlyPlayingId=null;
 
 function getAudioFilePcm(fileId){
-  if(!currentBook)return null;
+  if(!currentBook) return null;
+  consolidateAudioFiles(currentBook); // ensure audioFiles is populated
   const files=currentBook.audioFiles||{};
   const chapters=currentBook.chapters||{};
-  if(fileId==='quick'){
-    const f=files.quick||(currentBook.audioMode==='quick'?{pcm:currentBook.audioBuffer}:null);
-    return f?.pcm||null;
-  }
-  if(fileId==='deep'){
-    const f=files.deep||(currentBook.audioMode==='deep'?{pcm:currentBook.audioBuffer}:null);
-    return f?.pcm||null;
-  }
-  if(fileId.startsWith('ch_')){
-    const chId=fileId.slice(3);
-    return chapters[chId]||null;
-  }
+  if(fileId==='quick') return files.quick?.pcm||null;
+  if(fileId==='deep')  return files.deep?.pcm||null;
+  if(fileId.startsWith('ch_')) return chapters[fileId.slice(3)]||null;
   return null;
 }
 
@@ -1467,7 +1548,7 @@ function renderLibrary(){
   });
   if(!f.length){list.innerHTML=`<div class="lib-empty-msg">${library.length?'No results.':'No books yet.<br>Generate your first summary in the Generate tab.'}</div>`;return;}
   list.innerHTML=f.map(b=>{
-    const s=b.summary,ha=!!b.audioBuffer||(Object.keys(b.chapters||{}).length>0);
+    const s=b.summary,ha=Object.keys(b.audioFiles||{}).some(k=>(b.audioFiles[k]?.pcm?.byteLength||0)>0)||(Object.keys(b.chapters||{}).length>0);
     const coverEl=b.coverUrl
       ?`<div class="lib-cover"><img src="${b.coverUrl}" alt="" loading="lazy"></div>`
       :`<div class="lib-cover">📚</div>`;
@@ -1499,9 +1580,23 @@ async function exportVault(){
   toast('Building vault…');
   const vault={version:'5.0',exportedAt:new Date().toISOString(),app:'BRVTY',books:[]};
   for(const book of library){
-    const e={id:book.id,createdAt:book.createdAt,audioVoice:book.audioVoice||null,audioMode:book.audioMode||null,notes:book.notes||'',summary:book.summary,coverUrl:book.coverUrl||null,audioBase64:null,chaptersBase64:{}};
-    if(book.audioBuffer){const bytes=new Uint8Array(book.audioBuffer);let b64='';const ch=8192;for(let i=0;i<bytes.length;i+=ch)b64+=String.fromCharCode(...bytes.subarray(i,i+ch));e.audioBase64=btoa(b64);}
-    for(const[cid,buf] of Object.entries(book.chapters||{})){const bytes=new Uint8Array(buf);let b64='';const ch=8192;for(let i=0;i<bytes.length;i+=ch)b64+=String.fromCharCode(...bytes.subarray(i,i+ch));e.chaptersBase64[cid]=btoa(b64);}
+    // Consolidate before export so audioFiles is the single source of truth
+    consolidateAudioFiles(book);
+    const e={id:book.id,createdAt:book.createdAt,audioVoice:book.audioVoice||null,audioMode:book.audioMode||null,notes:book.notes||'',summary:book.summary,coverUrl:book.coverUrl||null,audioFiles:{},chaptersBase64:{}};
+    // Serialize audioFiles (quick, deep)
+    for(const[fid,fobj] of Object.entries(book.audioFiles||{})){
+      if(!fobj?.pcm||!fobj.pcm.byteLength) continue;
+      const bytes=new Uint8Array(fobj.pcm);let b64='';const ch=8192;
+      for(let i=0;i<bytes.length;i+=ch)b64+=String.fromCharCode(...bytes.subarray(i,i+ch));
+      e.audioFiles[fid]={b64:btoa(b64),voice:fobj.voice||'?',createdAt:fobj.createdAt||''};
+    }
+    // Serialize chapters
+    for(const[cid,buf] of Object.entries(book.chapters||{})){
+      if(!buf||!buf.byteLength) continue;
+      const bytes=new Uint8Array(buf);let b64='';const ch=8192;
+      for(let i=0;i<bytes.length;i+=ch)b64+=String.fromCharCode(...bytes.subarray(i,i+ch));
+      e.chaptersBase64[cid]=btoa(b64);
+    }
     vault.books.push(e);
   }
   const json=JSON.stringify(vault,null,2);
@@ -1519,7 +1614,25 @@ async function importVault(){
       for(const entry of vault.books){
         if(library.find(b=>b.id===entry.id)){sk++;continue;}
         const book={id:entry.id||Date.now().toString(),createdAt:entry.createdAt||new Date().toISOString(),summary:entry.summary,audioVoice:entry.audioVoice||null,audioMode:entry.audioMode||null,notes:entry.notes||'',coverUrl:entry.coverUrl||null,audioBuffer:null,audioFiles:{},chapters:{}};
-        if(entry.audioBase64){try{const bs=atob(entry.audioBase64);const b=new Uint8Array(bs.length);for(let i=0;i<bs.length;i++)b[i]=bs.charCodeAt(i);book.audioBuffer=b.buffer;}catch{}}
+        // Restore audioFiles (new format)
+        for(const[fid,fobj] of Object.entries(entry.audioFiles||{})){
+          try{
+            if(!fobj?.b64) continue;
+            const bs=atob(fobj.b64);const b=new Uint8Array(bs.length);
+            for(let i=0;i<bs.length;i++)b[i]=bs.charCodeAt(i);
+            book.audioFiles[fid]={pcm:b.buffer,voice:fobj.voice||'?',createdAt:fobj.createdAt||''};
+          }catch{}
+        }
+        // Restore legacy audioBase64 (old vault format) → promote to audioFiles
+        if(entry.audioBase64 && !Object.keys(book.audioFiles).length){
+          try{
+            const bs=atob(entry.audioBase64);const b=new Uint8Array(bs.length);
+            for(let i=0;i<bs.length;i++)b[i]=bs.charCodeAt(i);
+            const mode=entry.audioMode||'quick';
+            book.audioFiles[mode]={pcm:b.buffer,voice:entry.audioVoice||'?',createdAt:entry.createdAt||''};
+          }catch{}
+        }
+        // Restore chapters
         for(const[cid,b64] of Object.entries(entry.chaptersBase64||{})){try{const bs=atob(b64);const b=new Uint8Array(bs.length);for(let i=0;i<bs.length;i++)b[i]=bs.charCodeAt(i);book.chapters[cid]=b.buffer;}catch{}}
         await dbPut(book);library.unshift(book);imp++;
       }
@@ -1678,7 +1791,7 @@ function renderRecent(){
     const coverEl=b.coverUrl
       ?`<img src="${b.coverUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:3px;">`
       :`<span style="font-size:20px;">📚</span>`;
-    const hasAudio=!!(b.audioBuffer||Object.keys(b.chapters||{}).length);
+    const hasAudio=Object.keys(b.audioFiles||{}).some(k=>(b.audioFiles[k]?.pcm?.byteLength||0)>0)||(Object.keys(b.chapters||{}).length>0);
     return`<div onclick="libSelect('${b.id}')" style="flex-shrink:0;width:110px;cursor:pointer;display:flex;flex-direction:column;gap:5px;">
       <div style="width:110px;height:70px;background:var(--surface);border-radius:var(--r);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;">
         ${coverEl}
