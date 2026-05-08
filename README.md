@@ -1,82 +1,76 @@
-# BRVTY — Book Intelligence PWA
+# BRVTY — Book Intelligence
 
-AI-powered book summaries with audio narration. Built for your commute.
-
-## Deploy to GitHub Pages (5 minutes)
-
-### Option A — Single File Deploy (Simplest)
-1. Create a new GitHub repo (e.g. `brvty`)
-2. Upload `brvty.html` → rename it to `index.html`
-3. Go to **Settings → Pages → Branch: main → / (root)** → Save
-4. Your app is live at `https://yourusername.github.io/brvty`
-
-### Option B — Full Package Deploy
-1. Create a new GitHub repo
-2. Upload ALL files from this package as-is
-3. Go to **Settings → Pages → Branch: main → / (root)** → Save
-4. Live at `https://yourusername.github.io/repo-name`
+**Turn any book into a structured deep dive and a commute-ready audio experience — in seconds.**
 
 ---
 
-## Install as PWA (Add to Home Screen)
+## The idea
 
-### iPhone / iPad (Safari)
-1. Open your GitHub Pages URL in **Safari**
-2. Tap the **Share** button → **Add to Home Screen**
-3. Name it `BRVTY` → Add
-4. Launch from home screen — runs fullscreen, no browser chrome
+Most people want to read more. Most people don't have the time. BRVTY is built on a simple belief: the intelligence inside a great book shouldn't require hours of reading to access. It should be available to you on a drive, a walk, or a 20-minute lunch break.
 
-### Android (Chrome)
-1. Open URL in **Chrome**
-2. Tap ⋮ menu → **Add to Home Screen** or look for the install prompt
-3. Tap Install
+BRVTY uses Gemini 2.5 Flash to extract what actually matters from any book — the core thesis, the key pillars, the deep insights, the action items you can apply today. Then it narrates all of it in high-fidelity AI audio, structured into chapters you can navigate like a real audiobook.
 
-### Desktop (Chrome / Edge)
-1. Open URL
-2. Click the **install icon** in the address bar (⊕ or computer icon)
+It lives on your phone as a native-feeling app. It works offline. It remembers everything. And it costs nothing beyond an API key.
 
 ---
 
-## Get Your Gemini API Key (Free)
-1. Go to **https://aistudio.google.com**
-2. Sign in with Google → Click **Get API Key**
-3. Create key → Copy it
-4. Open BRVTY → tap ⚙ Settings → paste key → Save
-5. Free tier: 10 requests/min, 250/day — plenty for personal use
+## What it does
+
+**Book Summaries**
+Enter any title and BRVTY returns a structured intelligence brief: the book's core argument, 4 key pillars with explanations, deep dive insights, actionable takeaways, and memorable quotes. Cover art pulls automatically. Takes about 10 seconds.
+
+**Chapter Audio**
+Not just a summary read aloud — BRVTY generates individual chapter audio for each section of the summary. Intro, each pillar, deep dive, action items, closing. Navigate between chapters with the player or your car's steering wheel buttons. Auto-advances when a chapter ends.
+
+**Deep Narration**
+For the commute. A 1,200+ word audiobook-style narration of the full summary, generated in one pass and chunked at sentence boundaries for consistent voice quality. Long enough to fill a real drive.
+
+**Quick Summary Audio**
+A tight 3–4 minute audio brief when you just need the essence fast.
+
+**Audiobook Shelf**
+Import your own MP3, M4A, WAV, or FLAC files. BRVTY stores them locally, fetches cover art automatically, and plays them through the same player — with the same car mode, sleep timer, and speed controls.
+
+**Document Mode**
+Not a book? Paste any text — an article, a report, meeting notes, a PDF — and either run it through the full summary pipeline or send it straight to audio for a no-frills read-back. Browser voice option works offline with zero API calls.
+
+**Smart Library**
+Every book and document lives in your local library with its cover art, audio status, and your personal notes. Search by title, author, or content. Sort by date, genre, difficulty, or audio availability. Filter between books and documents.
+
+**Car Mode**
+One tap launches a fullscreen high-contrast player designed to be used while docked in a vehicle. Large buttons, chapter name displayed, progress bar. Steering wheel controls work via the Media Session API.
+
+**Sleep Timer**
+15, 30, 45, or 60 minutes. Auto-pauses and clears. Countdown shown live.
+
+**Vault**
+Export your entire library — summaries, notes, and audio — as a single portable file. Import it on any device to restore everything instantly.
 
 ---
 
-## Files in This Package
+## Built for the commute
 
-| File | Purpose |
-|------|---------|
-| `index.html` | The complete app (single file, self-contained) |
-| `icon-192.png` | PWA icon (home screen, Android) |
-| `icon-512.png` | PWA icon (splash, high-res) |
-| `icon-180.png` | Apple Touch Icon (iOS home screen) |
-| `icon-152.png` | iPad icon |
-| `icon-120.png` | iPhone icon |
-| `README.md` | This file |
+BRVTY is designed around a specific constraint: your hands are on the wheel, your eyes are on the road, and you have 20 minutes. Everything — the chapter structure, the car mode, the Media Session integration, the auto-advance, the sleep timer — is built around that scenario.
 
-> **Note:** The icons are also embedded inline in `index.html` as base64, so the app works perfectly even if deployed as a single file without the icon PNGs.
+It runs as a Progressive Web App. Install it from your browser to your home screen and it behaves exactly like a native app: fullscreen, no browser chrome, offline-capable, with your car's Bluetooth controls mapped to playback.
 
 ---
 
-## Features
-- **Generate** — Enter any book title (+optional notes) → Gemini 2.5 Flash returns structured JSON: thesis, key pillars, deep dives, action items, quotes
-- **Audio** — Gemini TTS narrates a custom audio script in 4 voices. Plays as proper WAV audio.
-- **Car Mode** — Fullscreen large-button player. Registers with Media Session API so steering wheel controls work.
-- **Library** — All summaries + audio saved locally in IndexedDB. Searchable. Persistent.
-- **Vault** — Export/import your entire library (text + audio) as a `.brvty` file for backup or cross-device transfer.
-- **Offline** — Service Worker caches the app shell. Works without internet after first load.
+## Privacy
+
+Everything is stored locally on your device. No account. No cloud sync. No data leaves your phone except the API calls you make directly to Google's Gemini — which you control with your own key. The vault export is a file that lives wherever you put it.
 
 ---
 
-## Tech
-- Vanilla JS — no framework, no build step
-- Gemini 2.5 Flash (`generateContent` with `responseMimeType: application/json`)
-- Gemini 2.5 Flash Preview TTS (PCM→WAV conversion built-in)
-- IndexedDB for local persistence
-- Media Session API for car/headphone controls
-- Service Worker for offline support
+## Powered by
 
+- **Gemini 2.5 Flash** — structured summary generation with 1M token context window
+- **Gemini 2.5 Flash Preview TTS** — high-fidelity neural narration in 4 voices (Aoede, Puck, Charon, Kore)
+- **IndexedDB** — local-first persistence for summaries, audio, and notes
+- **Media Session API** — car and headphone control integration
+- **Web Speech API** — browser voice fallback for offline document read-back
+- **Open Library + iTunes** — automatic cover art
+
+---
+
+*BRVTY v6 — johnlaz.github.io/brvty*
