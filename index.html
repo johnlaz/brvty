@@ -408,6 +408,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
 .bm-export-btn{font-size:9px;color:var(--blue);background:none;border:none;cursor:pointer;letter-spacing:1px;text-transform:uppercase;font-family:'DM Mono',monospace;}
 .bm-export-btn:hover{opacity:.7;}
 
+
+/* AMAZON AFFILIATE */
+.amz-btn{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#ff9900,#e47911);border:none;border-radius:var(--r);color:#111;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:6px 12px;cursor:pointer;text-decoration:none;transition:all .15s;flex-shrink:0;}
+.amz-btn:hover{opacity:.88;transform:translateY(-1px);}
+.amz-btn svg{width:14px;height:14px;flex-shrink:0;}
+.amz-disclosure{font-size:9px;color:var(--text3);letter-spacing:.5px;line-height:1.6;padding:10px 16px;border-top:1px solid var(--border);text-align:center;}
+/* Read Next — add buy button */
+.rec-actions{display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap;}
+
 /* DESKTOP */
 @media(min-width:700px){
   #page-generate{max-width:580px;margin:0 auto;padding:28px 24px;}
@@ -799,8 +808,18 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
       <div class="s-hint">Permanently deletes all books and audio from this device.</div>
     </div>
     <div class="s-sec">
+      <div class="s-lbl">Amazon Affiliate Tag</div>
+      <input class="s-field" type="text" id="amz-tag-field" placeholder="yourname-20" autocomplete="off">
+      <div class="s-hint">Optional. Enter your Amazon Associates tag to earn from book purchases. Links work without a tag — adding one attributes sales to your account.</div>
+      <div class="s-btn-row" style="margin-top:8px;">
+        <button class="s-btn pri" onclick="saveAmzTag()">Save Tag</button>
+        <button class="s-btn" onclick="clearAmzTag()">Clear</button>
+      </div>
+    </div>
+    <div class="s-sec">
       <div class="s-lbl">About</div>
-      <div class="s-hint" style="line-height:2.1;"><strong style="color:var(--text)">BRVTY v6.0</strong> — Book Intelligence PWA<br>Gemini 2.5 Flash · Chapter Audio · Audio File Manager<br>Sample books included · All data stored locally<br>All data stored locally · No account required</div>
+      <div class="s-hint" style="line-height:2.1;"><strong style="color:var(--text)">BRVTY v6.0</strong> — Book Intelligence PWA<br>Gemini 2.5 Flash · Chapter Audio · Audio File Manager<br>All data stored locally · No account required</div>
+      <div class="s-hint" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);color:var(--text3);">As an Amazon Associate I earn from qualifying purchases.</div>
     </div>
   </div>
 </div>
@@ -1139,6 +1158,40 @@ async function geminiReadback(text, title, key){
   setupMediaSession(title,'Document Read-back');
 }
 
+
+
+/* ══════════════════════════════════════ AMAZON TAG SETTINGS */
+function saveAmzTag(){
+  const v=document.getElementById('amz-tag-field').value.trim();
+  if(!v){toast('Enter your Associates tag (e.g. yourname-20)','err');return;}
+  localStorage.setItem('brvty_amz_tag',v);
+  toast('Affiliate tag saved ✓','ok');
+}
+function clearAmzTag(){
+  localStorage.removeItem('brvty_amz_tag');
+  document.getElementById('amz-tag-field').value='';
+  toast('Affiliate tag cleared.');
+}
+
+/* ══════════════════════════════════════ AMAZON AFFILIATE */
+function getAmzTag(){ return localStorage.getItem('brvty_amz_tag')||''; }
+
+function amzUrl(title, author){
+  const tag=getAmzTag();
+  const q=encodeURIComponent(`${title}${author?' '+author:''}`);
+  const base=`https://www.amazon.com/s?k=${q}&i=stripbooks`;
+  return tag ? base+`&tag=${encodeURIComponent(tag)}` : base;
+}
+
+function amzBtn(title, author){
+  const url=amzUrl(title,author);
+  // Amazon logo SVG path (simplified smile)
+  return `<a href="${url}" target="_blank" rel="noopener sponsored" class="amz-btn" onclick="event.stopPropagation()">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.23 10.56C13.23 11.3 13.24 11.91 12.88 12.57C12.59 13.1 12.12 13.43 11.59 13.43C10.87 13.43 10.45 12.88 10.45 12.07C10.45 10.47 11.89 10.18 13.23 10.18V10.56ZM15.19 15.45C15.07 15.56 14.89 15.56 14.76 15.49C14.13 14.97 14.01 14.7 13.66 14.19C12.62 15.25 11.89 15.57 10.54 15.57C8.94 15.57 7.69 14.6 7.69 12.63C7.69 11.08 8.52 10.02 9.72 9.5C10.76 9.05 12.22 8.97 13.23 8.84V8.61C13.23 8.18 13.26 7.67 13.01 7.3C12.79 6.97 12.37 6.83 11.99 6.83C11.3 6.83 10.69 7.19 10.54 7.92C10.51 8.07 10.4 8.22 10.25 8.23L8.37 8.03C8.23 8 8.08 7.88 8.12 7.68C8.56 5.35 10.67 4.64 12.56 4.64C13.53 4.64 14.8 4.9 15.56 5.63C16.53 6.54 16.44 7.76 16.44 9.07V12.17C16.44 13.08 16.82 13.48 17.18 13.97C17.31 14.14 17.34 14.34 17.17 14.48L15.19 15.45Z"/><path d="M19.65 17.75C17.33 19.47 13.97 20.38 11.09 20.38C7.07 20.38 3.46 18.9 0.76 16.42C0.55 16.23 0.74 15.97 0.99 16.12C3.89 17.78 7.5 18.78 11.23 18.78C13.74 18.78 16.49 18.24 19.03 17.13C19.41 16.96 19.74 17.38 19.65 17.75Z"/><path d="M20.6 16.66C20.32 16.31 18.78 16.5 18.09 16.58C17.88 16.61 17.85 16.42 18.04 16.29C19.29 15.4 21.36 15.66 21.6 15.95C21.84 16.25 21.54 18.32 20.37 19.31C20.19 19.46 20.02 19.38 20.1 19.18C20.38 18.49 20.88 17.02 20.6 16.66Z"/></svg>
+    Buy on Amazon
+  </a>`;
+}
+
 /* ══════════════════════════════════════ GENERATE SUMMARY */
 async function generateSummary(){
   const key=getKey();
@@ -1225,10 +1278,13 @@ function loadBook(book){
   const recHTML=(s.read_next||[]).map(rec=>`
     <div class="rec-item">
       <div class="rec-icon">📖</div>
-      <div>
+      <div style="flex:1;">
         <div class="rec-title">${esc(rec.title)}<span style="color:var(--text3);font-size:11px"> — ${esc(rec.author)}</span></div>
         <div class="rec-reason">${esc(rec.reason)}</div>
-        <button class="rec-load-btn" onclick="prefillBook('${esc(rec.title)}','${esc(rec.author)}')">Generate Summary →</button>
+        <div class="rec-actions">
+          <button class="rec-load-btn" onclick="prefillBook('${esc(rec.title)}','${esc(rec.author)}')">Generate Summary →</button>
+          ${amzBtn(rec.title, rec.author)}
+        </div>
       </div>
     </div>`).join('');
 
@@ -1265,9 +1321,10 @@ function loadBook(book){
         <div class="sum-title">${esc(s.title||'')}</div>
         ${s.author?`<div class="sum-author">by ${esc(s.author)}</div>`:''}
         <div class="chips">${tags.map(t=>`<span class="chip">${esc(t)}</span>`).join('')}</div>
-        <div style="margin-top:10px;display:flex;gap:6px;">
-          <button onclick="copyShareSummary()" style="background:none;border:1px solid var(--border2);border-radius:var(--r);color:var(--text3);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:5px 10px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text3)'">⎘ Copy Summary</button>
+        <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <button onclick="copyShareSummary()" style="background:none;border:1px solid var(--border2);border-radius:var(--r);color:var(--text3);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:5px 10px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text3)'">⎘ Copy</button>
           <button onclick="switchTab('audio')" style="background:none;border:1px solid var(--border2);border-radius:var(--r);color:var(--text3);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:5px 10px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text3)'">♪ Audio</button>
+          ${amzBtn(s.title||'',s.author||'')}
         </div>
       </div>
     </div>
@@ -1278,7 +1335,8 @@ function loadBook(book){
       ${actHTML?`<div><div class="sec-hd">Action Items</div><div class="actions-list">${actHTML}</div></div>`:''}
       ${qtHTML?`<div><div class="sec-hd">Memorable Quotes</div><div class="quotes-list">${qtHTML}</div></div>`:''}
       ${recHTML?`<div><div class="sec-hd">Read Next</div><div class="rec-list">${recHTML}</div></div>`:''}
-    </div>`;
+    </div>
+    <div class="amz-disclosure">As an Amazon Associate I earn from qualifying purchases.</div>`;
   }
 
   document.getElementById('player-title').textContent=s.title||'Untitled';
@@ -2734,7 +2792,7 @@ function openCarMode(){document.getElementById('car-mode').classList.add('open')
 function closeCarMode(){document.getElementById('car-mode').classList.remove('open');}
 
 /* ══════════════════════════════════════ SETTINGS */
-function openSettings(){document.getElementById('key-field').value=getKey();document.getElementById('settings-modal').classList.add('open');}
+function openSettings(){document.getElementById('key-field').value=getKey();document.getElementById('amz-tag-field').value=getAmzTag();document.getElementById('settings-modal').classList.add('open');}
 function closeSettings(){document.getElementById('settings-modal').classList.remove('open');}
 function modalBgClick(e){if(e.target===document.getElementById('settings-modal'))closeSettings();}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeCarMode();closeSettings();}});
