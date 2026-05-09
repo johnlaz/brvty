@@ -15,7 +15,7 @@
 <link rel="manifest" href="/brvty/manifest.json">
 <title>BRVTY v5 — Book Intelligence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&family=Bebas+Neue&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#0d0e12;--bg2:#12141a;--bg3:#191c24;
@@ -26,6 +26,14 @@
   --text:#dde2e8;--text2:#8a9099;--text3:#4a5058;
   --accent:#4a9eff;--red:#e05a5a;--green:#5ab87a;--amber:#f0a830;
   --r:4px;--r2:10px;
+  /* READING EXPERIENCE */
+  --fs-body:13px;       /* pillar-desc, dive-text, lib meta */
+  --fs-body-lg:15px;    /* thesis, action items, quotes */
+  --fs-title:17px;      /* pillar-title, dive-title */
+  --fs-sum-title:26px;  /* book title in summary hero */
+  --fs-sum-author:15px; /* author line */
+  --lh-body:1.75;       /* line height for body text */
+  --ff-reading:'Cormorant Garamond',Georgia,serif; /* display/reading font */
   --topbar:52px;--botbar:68px;
   --safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
 }
@@ -418,6 +426,44 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
 .rec-actions{display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap;}
 
 
+
+/* FONT SCALE */
+body.fs-small{
+  --fs-body:11px;--fs-body-lg:13px;--fs-title:15px;
+  --fs-sum-title:22px;--fs-sum-author:13px;--lh-body:1.65;
+}
+/* body.fs-medium is the default — no override needed */
+body.fs-large{
+  --fs-body:15px;--fs-body-lg:17px;--fs-title:20px;
+  --fs-sum-title:30px;--fs-sum-author:17px;--lh-body:1.85;
+}
+
+/* FONT FAMILY */
+/* Default: Cormorant Garamond (current) */
+body.ff-sans{
+  --ff-reading:'Inter',system-ui,sans-serif;
+}
+body.ff-serif{
+  --ff-reading:Georgia,'Times New Roman',serif;
+}
+
+/* APPLY VARS TO SUMMARY CONTENT */
+.pillar-desc{font-size:var(--fs-body);line-height:var(--lh-body);}
+.dive-text{font-size:var(--fs-body);line-height:var(--lh-body);}
+.action-item{font-size:var(--fs-body);line-height:var(--lh-body);}
+.rec-reason{font-size:var(--fs-body);line-height:var(--lh-body);}
+.thesis-block{font-family:var(--ff-reading);font-size:var(--fs-body-lg);line-height:var(--lh-body);}
+.pillar-title{font-family:var(--ff-reading);font-size:var(--fs-title);}
+.dive-title{font-family:var(--ff-reading);font-size:var(--fs-title);}
+.quote-item{font-family:var(--ff-reading);font-size:var(--fs-body-lg);line-height:var(--lh-body);}
+.rec-title{font-family:var(--ff-reading);font-size:var(--fs-body-lg);}
+.sum-title{font-family:var(--ff-reading);font-size:var(--fs-sum-title);}
+.sum-author{font-family:var(--ff-reading);font-size:var(--fs-sum-author);}
+.ab-title{font-family:var(--ff-reading);}
+.ab-player-title{font-family:var(--ff-reading);}
+.audio-book-title{font-family:var(--ff-reading);}
+.lib-item-title{font-family:var(--ff-reading);}
+
 /* LIGHT THEME */
 body.light{
   --bg:#f0f2f7;--bg2:#ffffff;--bg3:#e8ecf3;
@@ -556,21 +602,42 @@ body.light #intro-overlay{background:rgba(240,242,247,0.95);}
         </div>
       </div>
 
-      <!-- Slide 4: Audiobooks + Vault -->
+      <!-- Slide 4: Reading Experience -->
+      <div class="intro-slide">
+        <div class="intro-hero">🔤</div>
+        <div class="intro-title">Make It Comfortable</div>
+        <div class="intro-body">BRVTY lets you tune the reading experience to your preference. Find these in <strong>⚙ Settings → Reading Experience</strong>.</div>
+        <div class="intro-step">
+          <strong>Text Size — 3 options</strong>
+          <strong style="color:var(--text3);font-size:10px;">A&minus;</strong> Compact &nbsp;·&nbsp; <strong>A</strong> Default &nbsp;·&nbsp; <strong style="font-size:15px;">A+</strong> Large<br>
+          Default is balanced for most screens. Bump up if summaries feel dense.
+        </div>
+        <div class="intro-step">
+          <strong>Reading Font — 3 choices</strong>
+          <span style="font-family:'Cormorant Garamond',serif;font-size:14px;">Cormorant</span> — elegant editorial<br>
+          <span style="font-family:'Inter',sans-serif;font-size:12px;font-weight:500;">Inter</span> — clean, high readability<br>
+          <span style="font-family:Georgia,serif;font-size:13px;">Georgia</span> — warm, familiar serif
+        </div>
+        <div class="intro-body" style="font-size:10px;color:var(--text3);">
+          You can also switch between <strong>dark and light themes</strong> in the same section.
+        </div>
+      </div>
+
+      <!-- Slide 5: Audiobooks + Vault -->
       <div class="intro-slide">
         <div class="intro-hero">🎧</div>
         <div class="intro-title">More Features</div>
         <div class="intro-step">
           <strong>Audiobooks</strong>
-          Import your own MP3, M4A, or WAV files. They're stored locally and play through the same player with bookmarks, speed controls, and car mode.
+          Import your own MP3, M4A, or WAV files. Stored locally, plays through the same player with bookmarks, speed controls, and car mode.
         </div>
         <div class="intro-step">
           <strong>Library Vault</strong>
-          Settings → Export Vault to back up your entire library — summaries, audio, and notes — as one file. Import it on any device to restore everything.
+          Settings → Export Vault backs up your entire library — summaries, audio, and notes — as one file. Import it on any device.
         </div>
         <div class="intro-step">
           <strong>Document Mode</strong>
-          On the Generate tab, switch to Document mode to paste an article or report and get a full summary or direct audio read-back — no book title needed.
+          On the Generate tab, switch to Document mode to paste an article or report and get a full summary or direct audio read-back.
         </div>
         <div class="intro-body" style="font-size:10px;color:var(--text3);margin-top:4px;">
           Tap ⚙ Settings → <em>Show Intro</em> to revisit this guide anytime.
@@ -948,6 +1015,25 @@ body.light #intro-overlay{background:rgba(240,242,247,0.95);}
       <div class="s-row"><div><div class="s-row-lbl">Book covers</div><div class="s-row-sub">Fetch from Open Library</div></div><div class="toggle on" id="tog-covers" onclick="togglePref('covers')"></div></div>
     </div>
     <div class="s-sec">
+      <div class="s-lbl">Reading Experience</div>
+      <div style="margin-bottom:10px;">
+        <div class="s-row-lbl" style="margin-bottom:6px;font-size:11px;">Text Size</div>
+        <div style="display:flex;gap:6px;">
+          <button class="s-btn" id="fs-small-btn" onclick="setFontScale('small')" style="font-size:10px;">A&minus;</button>
+          <button class="s-btn" id="fs-medium-btn" onclick="setFontScale('medium')" style="font-size:12px;font-weight:600;">A</button>
+          <button class="s-btn" id="fs-large-btn" onclick="setFontScale('large')" style="font-size:14px;">A+</button>
+        </div>
+      </div>
+      <div>
+        <div class="s-row-lbl" style="margin-bottom:6px;font-size:11px;">Reading Font</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="s-btn" id="ff-default-btn" onclick="setFontFamily('default')" style="font-family:'Cormorant Garamond',serif;font-size:13px;letter-spacing:0;">Cormorant</button>
+          <button class="s-btn" id="ff-sans-btn" onclick="setFontFamily('sans')" style="font-family:'Inter',sans-serif;font-size:12px;letter-spacing:0;">Inter</button>
+          <button class="s-btn" id="ff-serif-btn" onclick="setFontFamily('serif')" style="font-family:Georgia,serif;font-size:12px;letter-spacing:0;">Georgia</button>
+        </div>
+      </div>
+    </div>
+    <div class="s-sec">
       <div class="s-lbl">Help</div>
       <div class="s-btn-row">
         <button class="s-btn" onclick="openIntro();closeSettings();">📖 Show Intro Guide</button>
@@ -1320,8 +1406,43 @@ async function geminiReadback(text, title, key){
 
 
 
+
+/* ══════════════════════════════════════ READING EXPERIENCE */
+const FS_SCALES = ['small','medium','large'];
+const FF_FAMILIES = ['default','sans','serif'];
+
+function setFontScale(scale){
+  FS_SCALES.forEach(s=>document.body.classList.remove('fs-'+s));
+  if(scale !== 'medium') document.body.classList.add('fs-'+scale);
+  localStorage.setItem('brvty_fs', scale);
+  // Update button active states
+  FS_SCALES.forEach(s=>{
+    const btn=document.getElementById('fs-'+s+'-btn');
+    if(btn) btn.style.borderColor = s===scale ? 'var(--blue)' : '';
+    if(btn) btn.style.color = s===scale ? 'var(--blue)' : '';
+  });
+}
+
+function setFontFamily(family){
+  FF_FAMILIES.forEach(f=>document.body.classList.remove('ff-'+f));
+  if(family !== 'default') document.body.classList.add('ff-'+family);
+  localStorage.setItem('brvty_ff', family);
+  FF_FAMILIES.forEach(f=>{
+    const btn=document.getElementById('ff-'+f+'-btn');
+    if(btn) btn.style.borderColor = f===family ? 'var(--blue)' : '';
+    if(btn) btn.style.color = f===family ? 'var(--blue)' : '';
+  });
+}
+
+function loadReadingPrefs(){
+  const scale = localStorage.getItem('brvty_fs') || 'medium';
+  const family = localStorage.getItem('brvty_ff') || 'default';
+  setFontScale(scale);
+  setFontFamily(family);
+}
+
 /* ══════════════════════════════════════ INTRO CARDS */
-const INTRO_TOTAL = 4;
+const INTRO_TOTAL = 5;
 let introSlide = 0;
 
 function openIntro(){
@@ -3012,7 +3133,16 @@ function openCarMode(){document.getElementById('car-mode').classList.add('open')
 function closeCarMode(){document.getElementById('car-mode').classList.remove('open');}
 
 /* ══════════════════════════════════════ SETTINGS */
-function openSettings(){document.getElementById('key-field').value=getKey();document.getElementById('amz-tag-field').value=getAmzTag();document.getElementById('settings-modal').classList.add('open');}
+function openSettings(){
+  document.getElementById('key-field').value=getKey();
+  document.getElementById('amz-tag-field').value=getAmzTag();
+  // Sync reading experience button states
+  const scale=localStorage.getItem('brvty_fs')||'medium';
+  const family=localStorage.getItem('brvty_ff')||'default';
+  ['small','medium','large'].forEach(s=>{const b=document.getElementById('fs-'+s+'-btn');if(b){b.style.borderColor=s===scale?'var(--blue)':'';b.style.color=s===scale?'var(--blue)':'';}});
+  ['default','sans','serif'].forEach(f=>{const b=document.getElementById('ff-'+f+'-btn');if(b){b.style.borderColor=f===family?'var(--blue)':'';b.style.color=f===family?'var(--blue)':'';}});
+  document.getElementById('settings-modal').classList.add('open');
+}
 function closeSettings(){document.getElementById('settings-modal').classList.remove('open');}
 function modalBgClick(e){if(e.target===document.getElementById('settings-modal'))closeSettings();}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeCarMode();closeSettings();}});
