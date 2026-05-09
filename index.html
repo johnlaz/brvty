@@ -388,6 +388,26 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
 .ab-ctrl.ab-stop:hover{color:var(--red);}
 .ab-speed-row{display:flex;justify-content:center;gap:5px;}
 
+
+/* AUDIOBOOK BOOKMARKS */
+.bm-list{border-top:1px solid var(--border);margin-top:2px;}
+.bm-item{display:flex;align-items:flex-start;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);background:var(--bg3);}
+.bm-item:last-child{border-bottom:none;}
+.bm-time-pill{background:var(--blue-dim);border:1px solid var(--blue);border-radius:20px;color:var(--blue);font-family:'DM Mono',monospace;font-size:9px;padding:3px 9px;flex-shrink:0;cursor:pointer;white-space:nowrap;}
+.bm-time-pill:hover{background:var(--blue);color:#fff;}
+.bm-note{flex:1;font-size:10px;color:var(--text2);line-height:1.5;word-break:break-word;}
+.bm-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px 4px;flex-shrink:0;line-height:1;}
+.bm-del:hover{color:var(--red);}
+.bm-add-row{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--border);background:var(--bg2);}
+.bm-note-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;padding:7px 10px;outline:none;-webkit-appearance:none;}
+.bm-note-input:focus{border-color:var(--blue);}
+.bm-note-input::placeholder{color:var(--text3);}
+.bm-save-btn{background:var(--blue);border:none;border-radius:var(--r);color:#fff;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:7px 12px;cursor:pointer;flex-shrink:0;}
+.bm-save-btn:hover{background:var(--blue2);}
+.bm-section-hd{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);padding:8px 14px 4px;display:flex;justify-content:space-between;align-items:center;}
+.bm-export-btn{font-size:9px;color:var(--blue);background:none;border:none;cursor:pointer;letter-spacing:1px;text-transform:uppercase;font-family:'DM Mono',monospace;}
+.bm-export-btn:hover{opacity:.7;}
+
 /* DESKTOP */
 @media(min-width:700px){
   #page-generate{max-width:580px;margin:0 auto;padding:28px 24px;}
@@ -673,6 +693,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
     <div class="ab-toolbar">
       <button class="ab-import-btn" onclick="importAudiobooks()">＋ Import Audio Files</button>
       <div class="ab-count" id="ab-count">0 files</div>
+      <button class="ab-import-btn" onclick="exportAllBookmarks()" style="background:none;border-color:var(--border2);color:var(--text3);font-size:9px;padding:6px 10px;" title="Export all bookmarks">🔖↓</button>
+      <button class="ab-import-btn" onclick="importBookmarks()" style="background:none;border-color:var(--border2);color:var(--text3);font-size:9px;padding:6px 10px;" title="Import bookmarks">🔖↑</button>
     </div>
     <div class="ab-size-warn" id="ab-size-warn"></div>
 
@@ -695,6 +717,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
         <button class="ab-ctrl" onclick="abSkip(10)" title="Forward 10s">↻</button>
         <button class="ab-ctrl" onclick="abSkip(30)" title="Forward 30s">⏭</button>
         <button class="ab-ctrl ab-stop" onclick="abStop()" title="Stop">⏹</button>
+        <button class="ab-ctrl" onclick="abAddBookmark()" title="Bookmark this position" style="font-size:16px;">🔖</button>
       </div>
       <div class="ab-speed-row">
         <button class="sp-btn" onclick="abSetSpeed(0.75)">0.75×</button>
@@ -2061,6 +2084,12 @@ async function playAudiobook(idx){
     if(next<audiobookShelf.length) playAudiobook(next);
   });
 
+  // Auto-resume from last bookmark if this is a fresh open (not user-initiated seek)
+  const resumeTime=getResumeTime(item);
+  if(resumeTime>0&&abAudioEl.currentTime<1){
+    abAudioEl.currentTime=resumeTime;
+  }
+
   abAudioEl.play().then(()=>{
     // Inline player
     abShowPlayer(item);
@@ -2210,6 +2239,197 @@ async function removeAbCover(idx){
   await abDbPut(item);
   renderAudiobookShelf();
   toast('Cover removed.');
+}
+
+
+/* ══════════════════════════════════════ AB BOOKMARKS */
+
+// Add bookmark from the 🔖 player button — prompts for note inline
+function abAddBookmark(){
+  if(!abAudioEl||currentAbIdx<0){toast('Play an audiobook first.','err');return;}
+  const time=abAudioEl.currentTime;
+  const item=audiobookShelf[currentAbIdx];
+  if(!item) return;
+  // Focus the note input in the shelf (scroll to it)
+  const inp=document.getElementById(`bm-note-input-${currentAbIdx}`);
+  if(inp){
+    inp.focus();
+    inp.placeholder=`Note for ${fmt(time)}…`;
+    inp.dataset.pendingTime=time;
+    // Scroll shelf item into view
+    const shelf=document.getElementById('ab-shelf');
+    if(shelf) shelf.scrollTop=0;
+    toast(`Paused at ${fmt(time)} — add a note and tap Mark`);
+  } else {
+    // Fallback — save immediately with no note
+    saveBookmark(currentAbIdx, time, '');
+  }
+}
+
+// Called by the Mark button in the shelf row
+function abAddBookmarkFromInput(idx){
+  const inp=document.getElementById(`bm-note-input-${idx}`);
+  if(!inp) return;
+  const item=audiobookShelf[idx];
+  if(!item) return;
+  // Use pending time from 🔖 button, or current player time, or 0
+  const time=parseFloat(inp.dataset.pendingTime)||
+    (currentAbIdx===idx&&abAudioEl?abAudioEl.currentTime:0);
+  const note=inp.value.trim()||'';
+  inp.value='';
+  delete inp.dataset.pendingTime;
+  inp.placeholder='Add a note for this bookmark…';
+  saveBookmark(idx, time, note);
+}
+
+async function saveBookmark(idx, time, note){
+  const item=audiobookShelf[idx];
+  if(!item) return;
+  if(!item.bookmarks) item.bookmarks=[];
+  // Deduplicate — don't allow bookmarks within 5 seconds of an existing one
+  const nearby=item.bookmarks.find(b=>Math.abs(b.time-time)<5);
+  if(nearby){
+    toast(`Bookmark already exists near ${fmt(nearby.time)}`);
+    return;
+  }
+  item.bookmarks.push({
+    time,
+    note,
+    createdAt:new Date().toISOString()
+  });
+  // Sort by time
+  item.bookmarks.sort((a,b)=>a.time-b.time);
+  await abDbPut(item);
+  renderAudiobookShelf();
+  toast(`Bookmark saved at ${fmt(time)}${note?' — "'+note.slice(0,30)+'"':''}  ✓`,'ok');
+}
+
+async function deleteBookmark(itemIdx, bmIdx){
+  const item=audiobookShelf[itemIdx];
+  if(!item||!item.bookmarks) return;
+  const bm=item.bookmarks[bmIdx];
+  if(!confirm(`Delete bookmark at ${fmt(bm.time)}?`)) return;
+  item.bookmarks.splice(bmIdx,1);
+  await abDbPut(item);
+  renderAudiobookShelf();
+  toast('Bookmark deleted.');
+}
+
+// Jump to a bookmark time — resumes from there
+function abJumpTo(time){
+  if(!abAudioEl){
+    toast('Start playback first, then tap the timestamp to jump.');
+    return;
+  }
+  abAudioEl.currentTime=time;
+  if(abAudioEl.paused){
+    abAudioEl.play().then(()=>{
+      document.getElementById('ab-play-btn').textContent='⏸';
+      document.getElementById('play-btn').textContent='⏸';
+      document.getElementById('car-play').textContent='⏸';
+      animateWave(true);
+    }).catch(()=>{});
+  }
+  toast(`Jumped to ${fmt(time)}`);
+}
+
+// Export bookmarks for one audiobook as a lightweight JSON file
+function exportBookmarks(idx){
+  const item=audiobookShelf[idx];
+  if(!item||!item.bookmarks?.length){toast('No bookmarks to export.','err');return;}
+  const data={
+    app:'BRVTY',
+    version:'1.0',
+    exportedAt:new Date().toISOString(),
+    audiobook:{
+      title:item.title,
+      artist:item.artist,
+      filename:item.filename,
+      duration:item.duration
+    },
+    bookmarks:item.bookmarks
+  };
+  const json=JSON.stringify(data,null,2);
+  dlFile(`brvty-bookmarks-${slug(item.title)}.json`,json,'application/json');
+  toast(`${item.bookmarks.length} bookmark(s) exported ✓`,'ok');
+}
+
+// Export ALL audiobook bookmarks as one file
+function exportAllBookmarks(){
+  const withBm=audiobookShelf.filter(b=>(b.bookmarks||[]).length>0);
+  if(!withBm.length){toast('No bookmarks saved yet.','err');return;}
+  const data={
+    app:'BRVTY',
+    version:'1.0',
+    exportedAt:new Date().toISOString(),
+    audiobooks:withBm.map(item=>({
+      audiobook:{title:item.title,artist:item.artist,filename:item.filename,duration:item.duration},
+      bookmarks:item.bookmarks
+    }))
+  };
+  dlFile(`brvty-all-bookmarks-${new Date().toISOString().slice(0,10)}.json`,
+    JSON.stringify(data,null,2),'application/json');
+  toast(`Bookmarks for ${withBm.length} audiobook(s) exported ✓`,'ok');
+}
+
+// Import bookmarks from a .json file — matches by filename then title+artist
+async function importBookmarks(){
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='.json';
+  inp.onchange=async e=>{
+    const file=e.target.files[0];if(!file)return;
+    try{
+      const data=JSON.parse(await file.text());
+      // Single book format
+      if(data.audiobook&&data.bookmarks){
+        await applyImportedBookmarks(data.audiobook,data.bookmarks);
+      }
+      // Multi-book format
+      else if(data.audiobooks){
+        let restored=0;
+        for(const entry of data.audiobooks){
+          const ok=await applyImportedBookmarks(entry.audiobook,entry.bookmarks);
+          if(ok) restored++;
+        }
+        toast(`Bookmarks restored for ${restored} audiobook(s) ✓`,restored?'ok':'');
+      } else {
+        toast('Unrecognized bookmark file format.','err');
+      }
+    }catch(err){toast('Import failed: '+err.message,'err');}
+  };
+  inp.click();
+}
+
+async function applyImportedBookmarks(abInfo, bookmarks){
+  // Match by filename first, then title+artist
+  let item=audiobookShelf.find(b=>b.filename===abInfo.filename);
+  if(!item) item=audiobookShelf.find(b=>
+    b.title.toLowerCase()===abInfo.title?.toLowerCase()&&
+    b.artist.toLowerCase()===abInfo.artist?.toLowerCase()
+  );
+  if(!item){
+    toast(`No match found for "${abInfo.title}" — import the audiobook file first.`,'err');
+    return false;
+  }
+  // Merge — skip duplicates by time proximity
+  if(!item.bookmarks) item.bookmarks=[];
+  let added=0;
+  for(const bm of bookmarks){
+    const exists=item.bookmarks.find(b=>Math.abs(b.time-bm.time)<5);
+    if(!exists){item.bookmarks.push(bm);added++;}
+  }
+  item.bookmarks.sort((a,b)=>a.time-b.time);
+  await abDbPut(item);
+  renderAudiobookShelf();
+  toast(`${added} bookmark(s) restored for "${item.title}" ✓`,'ok');
+  return true;
+}
+
+// Auto-resume: when playAudiobook is called, jump to last bookmark if no explicit time
+function getResumeTime(item){
+  if(!item.bookmarks?.length) return 0;
+  // Return the highest timestamp bookmark as the resume point
+  return item.bookmarks[item.bookmarks.length-1].time;
 }
 
 /* ══════════════════════════════════════ AB INLINE PLAYER CONTROLS */
