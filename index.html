@@ -417,6 +417,62 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
 /* Read Next — add buy button */
 .rec-actions{display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap;}
 
+
+/* LIGHT THEME */
+body.light{
+  --bg:#f0f2f7;--bg2:#ffffff;--bg3:#e8ecf3;
+  --surface:#ffffff;--surface2:#edf0f7;
+  --border:rgba(0,0,0,0.10);--border2:rgba(0,0,0,0.18);
+  --blue:#2271d4;--blue2:#3a8be0;
+  --blue-dim:rgba(34,113,212,0.12);--blue-glow:rgba(34,113,212,0.06);
+  --text:#1a1d26;--text2:#4a5068;--text3:#8a92a8;
+  --amber:#c07a00;--red:#c0392b;--green:#1e8a4a;
+  background:var(--bg);color:var(--text);
+}
+body.light #topbar,
+body.light #botnav,
+body.light .modal-sheet,
+body.light .sum-hero,
+body.light .audio-hero,
+body.light .lib-search-wrap,
+body.light .ab-toolbar,
+body.light #ab-player,
+body.light #recent-rail{background:var(--bg2);}
+body.light .logo{text-shadow:0 0 16px rgba(34,113,212,0.25);}
+body.light .thesis-block{background:var(--surface2);}
+body.light .pillar-card,
+body.light .dive-card,
+body.light .action-item,
+body.light .rec-item,
+body.light .ab-item,
+body.light .bm-item,
+body.light .af-item{background:var(--surface);border-color:var(--border);}
+
+/* INTRO CARDS */
+#intro-overlay{position:fixed;inset:0;background:rgba(13,14,18,0.92);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;}
+body.light #intro-overlay{background:rgba(240,242,247,0.95);}
+.intro-card{background:var(--bg2);border-radius:16px;border:1px solid var(--border2);max-width:420px;width:100%;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4);}
+.intro-slides{display:flex;transition:transform .35s ease;will-change:transform;}
+.intro-slide{min-width:100%;padding:28px 24px 20px;display:flex;flex-direction:column;gap:14px;}
+.intro-hero{font-size:42px;text-align:center;line-height:1;}
+.intro-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;color:var(--blue);text-align:center;}
+.intro-body{font-size:12px;color:var(--text2);line-height:1.8;text-align:center;}
+.intro-body strong{color:var(--text);}
+.intro-body a{color:var(--blue);text-decoration:none;}
+.intro-body a:hover{text-decoration:underline;}
+.intro-step{background:var(--surface2);border-radius:var(--r2);padding:12px 14px;font-size:11px;color:var(--text2);line-height:1.7;}
+.intro-step strong{color:var(--text);display:block;margin-bottom:3px;}
+.intro-actions{display:flex;justify-content:space-between;align-items:center;padding:14px 24px;border-top:1px solid var(--border);}
+.intro-dots{display:flex;gap:6px;}
+.intro-dot{width:7px;height:7px;border-radius:50%;background:var(--border2);cursor:pointer;transition:background .2s;}
+.intro-dot.active{background:var(--blue);}
+.intro-prev{background:none;border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:8px 14px;cursor:pointer;}
+.intro-prev:hover{border-color:var(--blue);color:var(--blue);}
+.intro-next{background:var(--blue);border:none;border-radius:var(--r);color:#fff;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:8px 18px;cursor:pointer;}
+.intro-next:hover{background:var(--blue2);}
+.intro-skip{background:none;border:none;color:var(--text3);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;padding:8px;}
+.intro-skip:hover{color:var(--text);}
+
 /* DESKTOP */
 @media(min-width:700px){
   #page-generate{max-width:580px;margin:0 auto;padding:28px 24px;}
@@ -437,6 +493,99 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
     <div id="splash-wordmark">BRVTY</div>
     <div id="splash-tagline">Book Intelligence</div>
     <div id="splash-bar"><div id="splash-bar-fill"></div></div>
+  </div>
+</div>
+
+
+<!-- INTRO OVERLAY -->
+<div id="intro-overlay" style="display:none;">
+  <div class="intro-card">
+    <div class="intro-slides" id="intro-slides">
+
+      <!-- Slide 1: Welcome -->
+      <div class="intro-slide">
+        <div class="intro-hero">📖</div>
+        <div class="intro-title">Welcome to BRVTY</div>
+        <div class="intro-body">
+          <strong>Book Intelligence for your commute.</strong><br><br>
+          BRVTY turns any book into a structured summary and high-fidelity audio narration — in seconds. Generate a thesis, key pillars, action items, and listen to it on the way to work.
+        </div>
+        <div class="intro-body" style="font-size:10px;color:var(--text3);">
+          Everything stays on your device. No account required.
+        </div>
+      </div>
+
+      <!-- Slide 2: Get your API key -->
+      <div class="intro-slide">
+        <div class="intro-hero">🔑</div>
+        <div class="intro-title">Get Your Free Key</div>
+        <div class="intro-body">BRVTY uses Google's Gemini AI. You'll need a free API key to generate summaries and audio.</div>
+        <div class="intro-step">
+          <strong>Step 1 — Visit Google AI Studio</strong>
+          Go to <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a> and sign in with your Google account.
+        </div>
+        <div class="intro-step">
+          <strong>Step 2 — Create a key</strong>
+          Click <em>Get API Key</em> → <em>Create API key</em>. Copy it.
+        </div>
+        <div class="intro-step">
+          <strong>Step 3 — Paste it in Settings</strong>
+          Tap ⚙ in the top right → paste your key → Save. Free tier: 250 summaries/day.
+        </div>
+      </div>
+
+      <!-- Slide 3: How to use -->
+      <div class="intro-slide">
+        <div class="intro-hero">✦</div>
+        <div class="intro-title">How It Works</div>
+        <div class="intro-step">
+          <strong>Generate</strong>
+          Type any book title (and optionally the author or paste your highlights). Tap Generate Summary. Takes about 10 seconds.
+        </div>
+        <div class="intro-step">
+          <strong>Summary</strong>
+          Read the thesis, key pillars, deep insights, action items, and memorable quotes. Tap a Read Next book to generate that one too.
+        </div>
+        <div class="intro-step">
+          <strong>Audio</strong>
+          Go to the Audio tab. Choose Quick (3 min), Chapters (section-by-section), or Deep Dive (15–20 min full narration). Tap Generate.
+        </div>
+        <div class="intro-step">
+          <strong>Car Mode</strong>
+          Tap 🚗 for a fullscreen player. Your steering wheel controls work via Bluetooth.
+        </div>
+      </div>
+
+      <!-- Slide 4: Audiobooks + Vault -->
+      <div class="intro-slide">
+        <div class="intro-hero">🎧</div>
+        <div class="intro-title">More Features</div>
+        <div class="intro-step">
+          <strong>Audiobooks</strong>
+          Import your own MP3, M4A, or WAV files. They're stored locally and play through the same player with bookmarks, speed controls, and car mode.
+        </div>
+        <div class="intro-step">
+          <strong>Library Vault</strong>
+          Settings → Export Vault to back up your entire library — summaries, audio, and notes — as one file. Import it on any device to restore everything.
+        </div>
+        <div class="intro-step">
+          <strong>Document Mode</strong>
+          On the Generate tab, switch to Document mode to paste an article or report and get a full summary or direct audio read-back — no book title needed.
+        </div>
+        <div class="intro-body" style="font-size:10px;color:var(--text3);margin-top:4px;">
+          Tap ⚙ Settings → <em>Show Intro</em> to revisit this guide anytime.
+        </div>
+      </div>
+
+    </div>
+    <div class="intro-actions">
+      <button class="intro-skip" id="intro-skip" onclick="closeIntro()">Skip</button>
+      <div class="intro-dots" id="intro-dots"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="intro-prev" id="intro-prev" onclick="introPrev()" style="display:none;">← Back</button>
+        <button class="intro-next" id="intro-next" onclick="introNext()">Next →</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -789,10 +938,20 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mon
       <div class="s-row"><div><div class="s-row-lbl">Audio TTS</div><div class="s-row-sub">gemini-2.5-flash-preview-tts</div></div><div style="font-size:9px;color:var(--text3)">FREE TIER</div></div>
     </div>
     <div class="s-sec">
+      <div class="s-lbl">Appearance</div>
+      <div class="s-row"><div><div class="s-row-lbl">Light Theme</div><div class="s-row-sub">Switch to a light color scheme</div></div><div class="toggle" id="tog-light" onclick="toggleTheme()"></div></div>
+    </div>
+    <div class="s-sec">
       <div class="s-lbl">Playback</div>
       <div class="s-row"><div><div class="s-row-lbl">Auto-play on open</div><div class="s-row-sub">Play when a book is selected</div></div><div class="toggle" id="tog-autoplay" onclick="togglePref('autoplay')"></div></div>
       <div class="s-row"><div><div class="s-row-lbl">Resume position</div><div class="s-row-sub">Remember where you left off</div></div><div class="toggle on" id="tog-resume" onclick="togglePref('resume')"></div></div>
       <div class="s-row"><div><div class="s-row-lbl">Book covers</div><div class="s-row-sub">Fetch from Open Library</div></div><div class="toggle on" id="tog-covers" onclick="togglePref('covers')"></div></div>
+    </div>
+    <div class="s-sec">
+      <div class="s-lbl">Help</div>
+      <div class="s-btn-row">
+        <button class="s-btn" onclick="openIntro();closeSettings();">📖 Show Intro Guide</button>
+      </div>
     </div>
     <div class="s-sec">
       <div class="s-lbl">Library Vault</div>
@@ -1159,6 +1318,67 @@ async function geminiReadback(text, title, key){
 }
 
 
+
+
+/* ══════════════════════════════════════ INTRO CARDS */
+const INTRO_TOTAL = 4;
+let introSlide = 0;
+
+function openIntro(){
+  introSlide = 0;
+  updateIntroUI();
+  document.getElementById('intro-overlay').style.display = 'flex';
+}
+
+function closeIntro(){
+  document.getElementById('intro-overlay').style.display = 'none';
+  localStorage.setItem('brvty_intro_seen','1');
+}
+
+function introNext(){
+  if(introSlide < INTRO_TOTAL - 1){ introSlide++; updateIntroUI(); }
+  else closeIntro();
+}
+
+function introPrev(){
+  if(introSlide > 0){ introSlide--; updateIntroUI(); }
+}
+
+function updateIntroUI(){
+  document.getElementById('intro-slides').style.transform = `translateX(-${introSlide * 100}%)`;
+  // Dots
+  const dots = document.getElementById('intro-dots');
+  dots.innerHTML = Array.from({length:INTRO_TOTAL},(_,i)=>
+    `<div class="intro-dot${i===introSlide?' active':''}" onclick="introGoTo(${i})"></div>`
+  ).join('');
+  // Buttons
+  document.getElementById('intro-prev').style.display = introSlide > 0 ? '' : 'none';
+  document.getElementById('intro-next').textContent = introSlide === INTRO_TOTAL - 1 ? "Get Started ✓" : "Next →";
+  document.getElementById('intro-skip').style.display = introSlide === INTRO_TOTAL - 1 ? 'none' : '';
+}
+
+function introGoTo(i){ introSlide = i; updateIntroUI(); }
+
+/* ══════════════════════════════════════ THEME */
+function applyTheme(light){
+  document.body.classList.toggle('light', light);
+  document.getElementById('tog-light').classList.toggle('on', light);
+  // Update meta theme-color
+  const mc = document.querySelector('meta[name="theme-color"]');
+  if(mc) mc.setAttribute('content', light ? '#ffffff' : '#0d0e12');
+}
+
+function toggleTheme(){
+  const nowLight = document.body.classList.contains('light');
+  const next = !nowLight;
+  applyTheme(next);
+  localStorage.setItem('brvty_theme', next ? 'light' : 'dark');
+}
+
+function loadTheme(){
+  const saved = localStorage.getItem('brvty_theme');
+  applyTheme(saved === 'light');
+}
 
 /* ══════════════════════════════════════ AMAZON TAG SETTINGS */
 function saveAmzTag(){
@@ -3243,6 +3463,10 @@ async function boot(){
     updateAbBadge();
   }catch(e){console.warn('Audiobook store init failed:',e);}
   updateOnlineStatus();
+  // Show intro on first launch (after splash clears)
+  if(!localStorage.getItem('brvty_intro_seen')){
+    setTimeout(openIntro, 2600);
+  }
   _splashBootDone=true;_splashCheck();
 }
 
